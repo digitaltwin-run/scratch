@@ -39,4 +39,62 @@ Blockly.defineBlocksWithJsonArray([
     "tooltip": "Zmienia tekst elementu w UI",
     "helpUrl": ""
   }
+,
+  {
+    "type": "mqtt_on_message",
+    "message0": "on MQTT message(topic %1) do %2",
+    "args0": [
+      { "type": "field_input", "name": "TOPIC", "text": "sensors/#" },
+      { "type": "input_statement", "name": "DO" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 290,
+    "tooltip": "Handler dla wiadomości MQTT z filtrem tematu (+, #)",
+    "helpUrl": ""
+  }
+]);
+
+// Webgen blocks (HTML/CSS project generation)
+Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "web_set_title",
+    "message0": "set page title %1",
+    "args0": [
+      { "type": "input_value", "name": "TITLE" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 20,
+    "tooltip": "Ustawia tytuł strony (HTML <title>)",
+    "helpUrl": ""
+  },
+  {
+    "type": "web_add_element",
+    "message0": "add element %1 id %2 text %3",
+    "args0": [
+      { "type": "field_dropdown", "name": "TAG", "options": [["h1","h1"],["p","p"],["div","div"],["span","span"]] },
+      { "type": "field_input", "name": "ID", "text": "" },
+      { "type": "input_value", "name": "TEXT" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 45,
+    "tooltip": "Dodaje element do <body> w generowanym HTML",
+    "helpUrl": ""
+  },
+  {
+    "type": "css_add_rule",
+    "message0": "CSS rule selector %1 property %2 value %3",
+    "args0": [
+      { "type": "field_input", "name": "SEL", "text": "body" },
+      { "type": "field_input", "name": "PROP", "text": "color" },
+      { "type": "input_value", "name": "VAL" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 160,
+    "tooltip": "Dodaje prostą regułę CSS",
+    "helpUrl": ""
+  }
 ]);

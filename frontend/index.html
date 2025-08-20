@@ -5,10 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RPI Blockly IoT</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <!-- Pin Blockly to a stable version and include core blocks + JS generator -->
+  <script src="https://unpkg.com/blockly@9.4.2/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly@9.4.2/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@9.4.2/javascript_compressed.js"></script>
+  <!-- CodeMirror (syntax highlighting editor) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/dockerfile/dockerfile.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/properties/properties.min.js"></script>
   <style>
     body { font-family: system-ui, Arial, sans-serif; margin: 16px; }
-    #blocklyDiv { height: 420px; width: 100%; border: 1px solid #ddd; border-radius: 6px; }
+    /* Split view: Blockly (left) + Code editor (right) */
+    #ideSplit { display: flex; gap: 12px; align-items: stretch; }
+    #blocklyDiv { height: 420px; flex: 2; border: 1px solid #ddd; border-radius: 6px; }
+    #codePane { flex: 1; min-width: 260px; display: flex; flex-direction: column; }
+    #previewPane { flex: 1; min-width: 260px; display: flex; flex-direction: column; }
+    .CodeMirror { height: 420px; border: 1px solid #ddd; border-radius: 6px; }
+    #previewFrame { height: 420px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+    .splitter { width: 6px; cursor: col-resize; background: #e0e0e0; border-radius: 3px; }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; margin: 12px 0; }
     .card { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
     .value { font-weight: 700; font-size: 1.4em; }
@@ -33,35 +54,107 @@
   </div>
 
   <h3>Blockly</h3>
-  <div id="blocklyDiv"></div>
+  <div style="display:flex; align-items:center; gap:8px; margin:6px 0;">
+    <button id="btnLoadSample">Załaduj przykład Blockly</button>
+    <button onclick="runCode()">▶ Uruchom wygenerowany kod</button>
+    <button id="btnGenProject">🛠 Generuj projekt z Blockly</button>
+  </div>
+  <div id="ideSplit">
+    <div id="blocklyDiv"></div>
+    <div class="splitter" id="split1"></div>
+    <div id="codePane">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span>Podgląd kodu (JS)</span>
+      </div>
+      <textarea id="codeEditor"></textarea>
+    </div>
+    <div class="splitter" id="split2"></div>
+    <div id="previewPane">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span>Podgląd HTML (sandbox)</span>
+        <button id="btnRefreshPreview" title="Ręcznie odśwież podgląd">Odśwież podgląd</button>
+      </div>
+      <iframe id="previewFrame" sandbox="allow-scripts"></iframe>
+    </div>
+  </div>
   <xml id="toolbox" style="display:none">
-    <block type="mqtt_publish"></block>
-    <block type="mqtt_subscribe"></block>
-    <block type="set_element_text"></block>
-    <block type="controls_if"></block>
-    <block type="logic_compare"></block>
-    <block type="math_number"></block>
-    <block type="text"></block>
-    <block type="text_print"></block>
+    <category name="MQTT / API" custom="MQTT_TOPICS"></category>
+    <category name="REST / API">
+      <!-- Placeholder blocks for REST; extend later -->
+      <block type="text"></block>
+      <block type="text_print"></block>
+    </category>
+    <category name="Logika">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+      <block type="math_number"></block>
+    </category>
+    <category name="Zmienne" custom="VARIABLE"></category>
+    <category name="UI">
+      <block type="set_element_text"></block>
+    </category>
+    <category name="Webgen">
+      <block type="web_set_title"></block>
+      <block type="web_add_element"></block>
+      <block type="css_add_rule"></block>
+    </category>
+    <sep></sep>
+    <category name="Projekt">
+      <button text="Otwórz edytory projektu" callbackKey="OPEN_EDITORS"></button>
+      <block type="text"></block>
+    </category>
   </xml>
 
-  <div style="margin: 10px 0;">
-    <button onclick="runCode()">▶ Uruchom wygenerowany kod</button>
-  </div>
-  <pre id="output">// Kod JS wygenerowany z Blockly pojawi się tutaj</pre>
+  <pre id="output" style="margin-top:10px;">// Kod JS wygenerowany z Blockly pojawi się tutaj</pre>
 
   <script>
-    // MQTT client (WebSocket)
-    const client = mqtt.connect('ws://' + location.hostname + ':9001');
+    // MQTT client (WebSocket) with per-project .env
+    let client = null;
+    let projectEnv = {};
+    function parseEnv(text){
+      const env = {};
+      (text || '').split(/\r?\n/).forEach(line => {
+        const l = line.trim();
+        if (!l || l.startsWith('#')) return;
+        const idx = l.indexOf('=');
+        if (idx === -1) return;
+        const key = l.slice(0, idx).trim();
+        let val = l.slice(idx+1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        env[key] = val;
+      });
+      return env;
+    }
+    function getEnv(key, defVal){ return (projectEnv && projectEnv[key] !== undefined) ? projectEnv[key] : defVal; }
+    function resolveMqttWsUrl(){
+      const explicit = getEnv('MQTT_WS_URL');
+      if (explicit) return explicit;
+      const host = getEnv('MQTT_HOST', location.hostname);
+      const port = getEnv('MOSQUITTO_WS_PORT', '9001');
+      const proto = getEnv('MQTT_WS_PROTO', location.protocol === 'https:' ? 'wss' : 'ws');
+      return `${proto}://${host}:${port}`;
+    }
+    function connectMqtt(){
+      try { if (client) { client.end(true); } } catch(e) {}
+      client = mqtt.connect(resolveMqttWsUrl());
+      attachMqttHandlers();
+    }
 
-    client.on('connect', () => {
+    function onConnect(){
       console.log('MQTT connected');
-      client.subscribe('sensors/i2c/64');
-      client.subscribe('sensors/i2c/65');
-      client.subscribe('sensors/i2c/66');
-    });
+      // Subscribe wide to discover topics dynamically (retained msgs will arrive)
+      client.subscribe('sensors/#');
+      client.subscribe('actuators/#');
+    }
 
-    client.on('message', (topic, msg) => {
+    // Dynamic MQTT topic discovery storage
+    const discoveredTopics = new Set();
+
+    function onMessage(topic, msg){
+      // Track any topic we see
+      try { discoveredTopics.add(topic); } catch(e) {}
       try {
         const data = JSON.parse(msg.toString());
         if (topic === 'sensors/i2c/64') document.getElementById('sensor-low').textContent = data.value;
@@ -70,39 +163,507 @@
       } catch (e) {
         console.warn('Bad JSON on topic', topic, e);
       }
-    });
+      // If toolbox is open on MQTT, refresh its contents to reflect new topics
+      try { (workspace && workspace.getToolbox && workspace.getToolbox().refreshSelection && workspace.getToolbox().refreshSelection()); } catch(e) {}
+    }
+
+    function attachMqttHandlers(){
+      if (!client) return;
+      client.removeAllListeners && client.removeAllListeners();
+      client.on('connect', onConnect);
+      client.on('message', onMessage);
+    }
 
     function writeActuator(addr, value){
+      if (!client) return;
       client.publish(`actuators/i2c/${addr}`, JSON.stringify({ value }));
     }
 
     // Include blocks and generators (loaded below, then we will inject Blockly)
+    // Initialize MQTT with defaults
+    connectMqtt();
   </script>
-  <script src="blocks.js"></script>
-  <script src="generators.js"></script>
+  <script src="blocks.js?v=5"></script>
+  <script src="generators.js?v=5"></script>
   <script>
     // Blockly init (after custom blocks are loaded)
     const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox') });
+    const codeEditor = (window.CodeMirror && document.getElementById('codeEditor'))
+      ? CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+          lineNumbers: true,
+          mode: 'javascript',
+          theme: 'material-darker',
+          tabSize: 2,
+          indentUnit: 2,
+          viewportMargin: Infinity,
+        })
+      : null;
+
+    // Dynamic MQTT toolbox category callback
+    function blockXml(type, fieldName, fieldValue) {
+      const block = Blockly.utils.xml.createElement('block');
+      block.setAttribute('type', type);
+      if (fieldName) {
+        const field = Blockly.utils.xml.createElement('field');
+        field.setAttribute('name', fieldName);
+        field.textContent = String(fieldValue);
+        block.appendChild(field);
+      }
+      return block;
+    }
+
+    function mqttToolboxCallback(ws) {
+      const xmlList = [];
+      if (!discoveredTopics || discoveredTopics.size === 0) {
+        const label = Blockly.utils.xml.createElement('label');
+        label.setAttribute('text', 'Brak wykrytych tematów (czekam na MQTT)…');
+        xmlList.push(label);
+        // Provide generic blocks to start with
+        xmlList.push(blockXml('mqtt_subscribe', 'TOPIC', 'sensors/#'));
+        xmlList.push(blockXml('mqtt_on_message', 'TOPIC', 'sensors/#'));
+        xmlList.push(blockXml('mqtt_publish', 'TOPIC', 'actuators/i2c/0x50'));
+        return xmlList;
+      }
+      // Group topics: sensors first, then actuators, then others
+      const sensors = [];
+      const actuators = [];
+      const other = [];
+      for (const t of discoveredTopics) {
+        if (t.startsWith('sensors/')) sensors.push(t);
+        else if (t.startsWith('actuators/')) actuators.push(t);
+        else other.push(t);
+      }
+      const addSection = (title, topics) => {
+        if (topics.length === 0) return;
+        const label = Blockly.utils.xml.createElement('label');
+        label.setAttribute('text', title);
+        xmlList.push(label);
+        topics.sort();
+        for (const t of topics) {
+          xmlList.push(blockXml('mqtt_subscribe', 'TOPIC', t));
+          xmlList.push(blockXml('mqtt_on_message', 'TOPIC', t));
+          xmlList.push(blockXml('mqtt_publish', 'TOPIC', t));
+        }
+      };
+      addSection('Czujniki (sensors/*)', sensors);
+      addSection('Aktuatory (actuators/*)', actuators);
+      addSection('Inne tematy', other);
+      return xmlList;
+    }
+
+    try { workspace.registerToolboxCategoryCallback('MQTT_TOPICS', mqttToolboxCallback); } catch(e) { console.warn('Cannot register MQTT toolbox callback', e); }
+    try { workspace.registerButtonCallback('OPEN_EDITORS', function(){ document.getElementById('projectPanel').scrollIntoView({ behavior: 'smooth' }); }); } catch(e) {}
+
+    // Debug: confirm generators are registered
+    console.log('Blockly generators:', {
+      mqtt_publish: typeof Blockly.JavaScript['mqtt_publish'],
+      mqtt_subscribe: typeof Blockly.JavaScript['mqtt_subscribe'],
+      mqtt_on_message: typeof Blockly.JavaScript['mqtt_on_message'],
+      set_element_text: typeof Blockly.JavaScript['set_element_text']
+    });
+
+    // Hint banner when generators not ready
+    const genHintId = 'genHint';
+    function ensureGenHint(){
+      if (document.getElementById(genHintId)) return;
+      const el = document.createElement('div');
+      el.id = genHintId;
+      el.style.cssText = 'font-size:12px;color:#666;margin:4px 0;';
+      el.textContent = 'Ładowanie generatorów Blockly…';
+      document.getElementById('codePane')?.insertBefore(el, document.getElementById('codePane').firstChild);
+    }
+    function removeGenHint(){ const el = document.getElementById(genHintId); if (el) el.remove(); }
+
+    function generatorsReady(){
+      return typeof Blockly?.JavaScript?.['mqtt_publish'] === 'function'
+          && typeof Blockly?.JavaScript?.['mqtt_subscribe'] === 'function'
+          && typeof Blockly?.JavaScript?.['mqtt_on_message'] === 'function'
+          && typeof Blockly?.JavaScript?.['set_element_text'] === 'function';
+    }
+
+    function updateCodeFromBlocks(){
+      try {
+        if (!generatorsReady()) { ensureGenHint(); return; }
+        removeGenHint();
+        const code = Blockly.JavaScript.workspaceToCode(workspace);
+        if (codeEditor) codeEditor.setValue(code);
+        document.getElementById('output').textContent = code;
+      } catch(e) { console.warn('Code gen failed', e); }
+    }
+
+    workspace.addChangeListener(updateCodeFromBlocks);
+
+    // Helpers to simulate webgen (__WEB__) without touching real DOM/MQTT
+    function createWebCollector(){
+      const state = { title: 'Projekt', elements: [], rules: [], used: false };
+      const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+      return {
+        setTitle(t){ state.used = true; state.title = String(t); },
+        addElement(tag, id, text){ state.used = true; state.elements.push({ tag, id: id||'', text: String(text||'') }); },
+        addCssRule(sel, prop, val){ state.used = true; state.rules.push({ sel:String(sel||''), prop:String(prop||''), val:String(val||'') }); },
+        build(){
+          const body = state.elements.map(e => `<${e.tag}${e.id?` id="${esc(e.id)}"`:''}>${esc(e.text)}</${e.tag}>`).join('\n');
+          const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(state.title)}</title></head><body>\n${body}\n</body></html>`;
+          const css = state.rules.map(r => `${r.sel}{ ${r.prop}: ${r.val}; }`).join('\n');
+          return { html, css, used: state.used };
+        }
+      };
+    }
+    function simulateWebgenFromCode(code){
+      const __WEB__ = createWebCollector();
+      const client = { publish(){}, subscribe(){}, on(){} };
+      const documentStub = { getElementById(){ return { innerText: '' }; } };
+      try {
+        const fn = new Function('__WEB__','client','document', `'use strict';\n${code}`);
+        fn(__WEB__, client, documentStub);
+      } catch(e){ console.warn('Webgen simulate error', e); }
+      return __WEB__.build();
+    }
+
+    // Generate Project from Blockly -> fill app.js, and if available HTML/CSS from webgen
+    function generateProjectFromBlocks(){
+      if (!generatorsReady()) { alert('Generatory Blockly jeszcze się ładują. Odśwież (Ctrl+Shift+R).'); return; }
+      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      if (window.cmTabs && cmTabs.js) {
+        cmTabs.js.setValue(code);
+      } else {
+        const el = document.getElementById('jsEditor'); if (el) el.value = code;
+      }
+      // Try to build HTML/CSS via simulated __WEB__ API
+      try {
+        const built = simulateWebgenFromCode(code);
+        if (built && built.used) {
+          if (window.cmTabs && cmTabs.html) cmTabs.html.setValue(built.html); else { const el = document.getElementById('htmlEditor'); if (el) el.value = built.html; }
+          if (window.cmTabs && cmTabs.css) cmTabs.css.setValue(built.css); else { const elc = document.getElementById('cssEditor'); if (elc) elc.value = built.css; }
+        }
+      } catch(e){ console.warn('Build HTML/CSS from webgen failed', e); }
+      updatePreview();
+    }
+    document.getElementById('btnGenProject').addEventListener('click', generateProjectFromBlocks);
 
     function runCode(){
+      if (typeof Blockly.JavaScript['mqtt_publish'] !== 'function') {
+        alert('Generator for mqtt_publish not loaded yet. Hard refresh (Ctrl+Shift+R) and try again.');
+        return;
+      }
       Blockly.JavaScript.INFINITE_LOOP_TRAP = null;
-      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      const code = codeEditor ? codeEditor.getValue() : Blockly.JavaScript.workspaceToCode(workspace);
       document.getElementById('output').textContent = code;
       try { eval(code); } catch(e){ alert(e); }
     }
 
-    // Example: programmatically create an initial block (avoids XML helpers differences across versions)
-    (function initWorkspace(){
+    // Sample Blockly project (XML) to demonstrate blocks and rendered code
+    const sampleXmlText = `
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="web_set_title" id="t1" x="20" y="20">
+    <value name="TITLE"><block type="text"><field name="TEXT">IoT Dashboard</field></block></value>
+    <next>
+      <block type="web_add_element" id="e1">
+        <field name="TAG">h1</field>
+        <field name="ID">title</field>
+        <value name="TEXT"><block type="text"><field name="TEXT">Witaj</field></block></value>
+      </block>
+    </next>
+  </block>
+  <block type="css_add_rule" id="c1" x="20" y="140">
+    <field name="SEL">body</field>
+    <field name="PROP">font-family</field>
+    <value name="VAL"><block type="text"><field name="TEXT">system-ui, Arial, sans-serif</field></block></value>
+  </block>
+  <block type="mqtt_on_message" id="m1" x="360" y="20">
+    <field name="TOPIC">sensors/i2c/64</field>
+    <statement name="DO">
+      <block type="set_element_text">
+        <field name="ELEMENT">sensor-low</field>
+        <value name="VALUE"><block type="text"><field name="TEXT">Witaj z Blockly</field></block></value>
+        <next>
+          <block type="mqtt_publish">
+            <field name="TOPIC">actuators/i2c/0x50</field>
+            <value name="VALUE"><block type="text"><field name="TEXT">1</field></block></value>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml>`;
+
+    function loadSample(){
       try {
-        const b = workspace.newBlock('mqtt_subscribe');
-        b.setFieldValue('sensors/i2c/64', 'TOPIC');
-        b.initSvg();
-        b.render();
-        b.moveBy(20, 20);
-      } catch (e) {
-        console.warn('Could not create initial block:', e);
+        const xml = (Blockly.Xml && Blockly.Xml.textToDom)
+          ? Blockly.Xml.textToDom(sampleXmlText)
+          : (Blockly.utils && Blockly.utils.xml && Blockly.utils.xml.textToDom
+              ? Blockly.utils.xml.textToDom(sampleXmlText)
+              : null);
+        if (!xml) throw new Error('Blockly XML parser not available');
+        workspace.clear();
+        Blockly.Xml.domToWorkspace(xml, workspace);
+        updateCodeFromBlocks();
+      } catch(e) { console.warn('Sample load failed', e); }
+    }
+
+    document.getElementById('btnLoadSample').addEventListener('click', () => { loadSample(); updateCodeFromBlocks(); });
+    // Auto-load sample on first load to showcase both blocks and code
+    loadSample();
+    // Retry update shortly in case generators arrive slightly later
+    setTimeout(updateCodeFromBlocks, 50);
+    setTimeout(updateCodeFromBlocks, 200);
+  </script>
+
+  <!-- Project Editors Panel -->
+  <section id="projectPanel" style="margin-top:16px;">
+    <h3>Projekt</h3>
+    <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+      <label>Nazwa projektu: <input id="projectName" placeholder="moja-aplikacja" /></label>
+      <button id="btnNewProj">Utwórz / Załaduj</button>
+      <button id="btnSaveAll">Pobierz wszystkie pliki</button>
+      <button id="btnApplyEnv">Zastosuj .env (połącz MQTT)</button>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <div style="min-width:200px;">
+        <div><button class="tabBtn" data-tab="env">.env</button></div>
+        <div><button class="tabBtn" data-tab="dockerfile">Dockerfile</button></div>
+        <div><button class="tabBtn" data-tab="compose">docker-compose.yml</button></div>
+        <div><button class="tabBtn" data-tab="css">CSS</button></div>
+        <div><button class="tabBtn" data-tab="js">JavaScript</button></div>
+        <div><button class="tabBtn" data-tab="html">HTML</button></div>
+      </div>
+      <div style="flex:1;">
+        <div id="tab-env" class="tabPane">
+          <textarea id="envEditor" style="width:100%;height:220px;font-family:monospace;"></textarea>
+          <div style="margin-top:6px;">
+            <button id="btnSaveEnv">Pobierz .env</button>
+            <input type="file" id="fileEnv" accept=".env,text/plain" />
+          </div>
+        </div>
+        <div id="tab-dockerfile" class="tabPane" style="display:none;">
+          <textarea id="dockerfileEditor" style="width:100%;height:220px;font-family:monospace;"></textarea>
+          <div style="margin-top:6px;">
+            <button id="btnSaveDockerfile">Pobierz Dockerfile</button>
+            <input type="file" id="fileDockerfile" accept="text/*" />
+          </div>
+        </div>
+        <div id="tab-compose" class="tabPane" style="display:none;">
+          <textarea id="composeEditor" style="width:100%;height:220px;font-family:monospace;"></textarea>
+          <div style="margin-top:6px;">
+            <button id="btnSaveCompose">Pobierz docker-compose.yml</button>
+            <input type="file" id="fileCompose" accept=".yml,.yaml,text/yaml" />
+          </div>
+        </div>
+        <div id="tab-css" class="tabPane" style="display:none;">
+          <textarea id="cssEditor" style="width:100%;height:220px;font-family:monospace;"></textarea>
+          <div style="margin-top:6px;">
+            <button id="btnSaveCss">Pobierz styles.css</button>
+            <input type="file" id="fileCss" accept=".css,text/css" />
+          </div>
+        </div>
+        <div id="tab-js" class="tabPane" style="display:none;">
+          <textarea id="jsEditor" style="width:100%;height:220px;font-family:monospace;"></textarea>
+          <div style="margin-top:6px;">
+            <button id="btnSaveJs">Pobierz app.js</button>
+            <input type="file" id="fileJs" accept=".js,application/javascript" />
+          </div>
+        </div>
+        <div id="tab-html" class="tabPane" style="display:none;">
+          <textarea id="htmlEditor" style="width:100%;height:220px;font-family:monospace;"></textarea>
+          <div style="margin-top:6px;">
+            <button id="btnSaveHtml">Pobierz index.html</button>
+            <input type="file" id="fileHtml" accept=".html,text/html" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Simple tabs & local storage
+    const defaultFiles = {
+      env: `# .env projektu\nFRONTEND_HTTP_PORT=8080\nMOSQUITTO_TCP_PORT=1883\nMOSQUITTO_WS_PORT=9001\n# MQTT_HOST=mosquitto\n# Explicit browser WS URL (recommended for local dev)\nMQTT_WS_URL=ws://localhost:9001\n`,
+      dockerfile: `# Dockerfile (frontend example)\nFROM nginx:alpine\nCOPY index.html /usr/share/nginx/html/index.html\nCOPY blocks.js /usr/share/nginx/html/blocks.js\nCOPY generators.js /usr/share/nginx/html/generators.js\n`,
+      compose: `# docker-compose.yml (example)\nservices:\n  mosquitto:\n    image: eclipse-mosquitto:2.0\n    ports:\n      - "${'${'}MOSQUITTO_TCP_PORT:-1883}:1883"\n      - "${'${'}MOSQUITTO_WS_PORT:-9001}:9001"\n  frontend:\n    image: my-frontend:latest\n    build: .\n    ports:\n      - "${'${'}FRONTEND_HTTP_PORT:-8080}:80"\n`,
+      css: `/* styles.css (example) */\nbody{ font-family: system-ui, Arial, sans-serif; padding: 16px; }\n.card{ padding: 8px; border: 1px solid #ddd; border-radius: 6px; }\n`,
+      js: `// app.js (example)\nconsole.log('Hello from app.js');\n`,
+      html: `<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Projekt</title></head><body><h1>Witaj</h1></body></html>\n`
+    };
+    function storageKey(name){ return `project:${name}`; }
+    function saveProject(name, files){ localStorage.setItem(storageKey(name), JSON.stringify(files)); }
+    function loadProject(name){ try { return JSON.parse(localStorage.getItem(storageKey(name))||'null'); } catch { return null; } }
+    function setActiveTab(tab){
+      document.querySelectorAll('.tabPane').forEach(p => p.style.display = 'none');
+      const el = document.getElementById(`tab-${tab}`); if (el) el.style.display = '';
+      // refresh CodeMirror in shown tab to fix sizing
+      if (window.cmTabs && cmTabs[tab] && cmTabs[tab].refresh) setTimeout(() => cmTabs[tab].refresh(), 0);
+    }
+    document.querySelectorAll('.tabBtn').forEach(btn => btn.addEventListener('click', () => setActiveTab(btn.dataset.tab)));
+    setActiveTab('env');
+
+    // CodeMirror instances for project tabs
+    let cmTabs = {};
+    function initProjectEditors(){
+      if (!window.CodeMirror) return;
+      const common = { lineNumbers:true, theme:'material-darker', tabSize:2, indentUnit:2, viewportMargin:Infinity };
+      cmTabs.env = CodeMirror.fromTextArea(document.getElementById('envEditor'), { ...common, mode: 'properties' });
+      cmTabs.dockerfile = CodeMirror.fromTextArea(document.getElementById('dockerfileEditor'), { ...common, mode: 'dockerfile' });
+      cmTabs.compose = CodeMirror.fromTextArea(document.getElementById('composeEditor'), { ...common, mode: 'yaml' });
+      cmTabs.css = CodeMirror.fromTextArea(document.getElementById('cssEditor'), { ...common, mode: 'css' });
+      cmTabs.js = CodeMirror.fromTextArea(document.getElementById('jsEditor'), { ...common, mode: 'javascript' });
+      cmTabs.html = CodeMirror.fromTextArea(document.getElementById('htmlEditor'), { ...common, mode: 'htmlmixed' });
+      // Manual preview: use the "Odśwież podgląd" button
+      // ['html','css','js'].forEach(k => { cmTabs[k].on('change', () => updatePreview()); });
+      // expose globally for guards using window.cmTabs
+      window.cmTabs = cmTabs;
+    }
+    if (window.CodeMirror) initProjectEditors();
+
+    function setEditors(files){
+      const use = (k, v) => {
+        if (window.cmTabs && cmTabs[k]) cmTabs[k].setValue(v);
+        else document.getElementById(k + 'Editor').value = v;
+      };
+      use('env', files.env ?? defaultFiles.env);
+      use('dockerfile', files.dockerfile ?? defaultFiles.dockerfile);
+      use('compose', files.compose ?? defaultFiles.compose);
+      use('css', files.css ?? defaultFiles.css);
+      use('js', files.js ?? defaultFiles.js);
+      use('html', files.html ?? defaultFiles.html);
+      updatePreview();
+    }
+    function gatherEditors(){
+      const get = (k) => (window.cmTabs && cmTabs[k]) ? cmTabs[k].getValue() : document.getElementById(k + 'Editor').value;
+      return {
+        env: get('env'),
+        dockerfile: get('dockerfile'),
+        compose: get('compose'),
+        css: get('css'),
+        js: get('js'),
+        html: get('html'),
+      };
+    }
+    function download(filename, text){
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain'}));
+      a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    function applyEnv(){
+      const envText = (window.cmTabs && cmTabs.env) ? cmTabs.env.getValue() : document.getElementById('envEditor').value;
+      projectEnv = parseEnv(envText);
+      console.log('ENV applied', projectEnv);
+      // Reconnect MQTT with possibly new host/port
+      if (client) { try { client.end(true); } catch{} }
+      connectMqtt();
+    }
+    document.getElementById('btnApplyEnv').addEventListener('click', applyEnv);
+
+    document.getElementById('btnNewProj').addEventListener('click', () => {
+      const name = document.getElementById('projectName').value.trim() || 'moja-aplikacja';
+      const stored = loadProject(name);
+      setEditors(stored || defaultFiles);
+    });
+    document.getElementById('btnSaveAll').addEventListener('click', () => {
+      const name = document.getElementById('projectName').value.trim() || 'moja-aplikacja';
+      const files = gatherEditors();
+      saveProject(name, files);
+      // download individual files for now
+      download('.env', files.env);
+      download('Dockerfile', files.dockerfile);
+      download('docker-compose.yml', files.compose);
+      download('styles.css', files.css);
+      download('app.js', files.js);
+      download('index.html', files.html);
+    });
+    document.getElementById('btnSaveEnv').addEventListener('click', ()=> download('.env', (cmTabs.env?cmTabs.env.getValue():document.getElementById('envEditor').value)));
+    document.getElementById('btnSaveDockerfile').addEventListener('click', ()=> download('Dockerfile', (cmTabs.dockerfile?cmTabs.dockerfile.getValue():document.getElementById('dockerfileEditor').value)));
+    document.getElementById('btnSaveCompose').addEventListener('click', ()=> download('docker-compose.yml', (cmTabs.compose?cmTabs.compose.getValue():document.getElementById('composeEditor').value)));
+    document.getElementById('btnSaveCss').addEventListener('click', ()=> download('styles.css', (cmTabs.css?cmTabs.css.getValue():document.getElementById('cssEditor').value)));
+    document.getElementById('btnSaveJs').addEventListener('click', ()=> download('app.js', (cmTabs.js?cmTabs.js.getValue():document.getElementById('jsEditor').value)));
+    document.getElementById('btnSaveHtml').addEventListener('click', ()=> download('index.html', (cmTabs.html?cmTabs.html.getValue():document.getElementById('htmlEditor').value)));
+
+    function loadFromFile(inputEl, targetId){
+      const file = inputEl.files && inputEl.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || '');
+        const idToKey = { envEditor:'env', dockerfileEditor:'dockerfile', composeEditor:'compose', cssEditor:'css', jsEditor:'js', htmlEditor:'html' };
+        const key = idToKey[targetId];
+        if (window.cmTabs && cmTabs[key]) cmTabs[key].setValue(text); else document.getElementById(targetId).value = text;
+        if (key === 'html' || key === 'css' || key === 'js') updatePreview();
+      };
+      reader.readAsText(file);
+    }
+    document.getElementById('fileEnv').addEventListener('change', e => loadFromFile(e.target, 'envEditor'));
+    document.getElementById('fileDockerfile').addEventListener('change', e => loadFromFile(e.target, 'dockerfileEditor'));
+    document.getElementById('fileCompose').addEventListener('change', e => loadFromFile(e.target, 'composeEditor'));
+    document.getElementById('fileCss').addEventListener('change', e => loadFromFile(e.target, 'cssEditor'));
+    document.getElementById('fileJs').addEventListener('change', e => loadFromFile(e.target, 'jsEditor'));
+    document.getElementById('fileHtml').addEventListener('change', e => loadFromFile(e.target, 'htmlEditor'));
+
+    // Live HTML preview (sandboxed)
+    function buildPreviewDoc(html, css, js){
+      const base = (html && html.trim()) ? html : '<!doctype html><html><head><meta charset="utf-8"><title>Preview</title></head><body><h1>Podgląd</h1></body></html>';
+      if (base.includes('</head>')) {
+        html = base.replace('</head>', `<style>${css || ''}</style></head>`);
+      } else {
+        html = base + `<style>${css || ''}</style>`;
       }
+      // Inject a no-op __WEB__ stub before user JS to avoid runtime errors from webgen calls
+      const webStub = `window.__WEB__ = window.__WEB__ || { setTitle: function(){}, addElement: function(){}, addCssRule: function(){} };`;
+      const combinedJs = `${webStub}\n${js || ''}`;
+      if (html.includes('</body>')) {
+        html = html.replace('</body>', `<script>${combinedJs.replace(/<\\/script>/g, '<\\/script>')}<\/script></body>`);
+      } else {
+        html = html + `<script>${combinedJs.replace(/<\\/script>/g, '<\\/script>')}<\/script>`;
+      }
+      return html;
+    }
+    let previewTimer = null;
+    function updatePreview(){
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        const html = (window.cmTabs && cmTabs.html) ? cmTabs.html.getValue() : document.getElementById('htmlEditor').value;
+        const css = (window.cmTabs && cmTabs.css) ? cmTabs.css.getValue() : document.getElementById('cssEditor').value;
+        const js = (window.cmTabs && cmTabs.js) ? cmTabs.js.getValue() : document.getElementById('jsEditor').value;
+        const doc = buildPreviewDoc(html, css, js);
+        const frame = document.getElementById('previewFrame');
+        if (frame) frame.srcdoc = doc;
+      }, 120);
+    }
+    // Manual refresh button
+    document.getElementById('btnRefreshPreview')?.addEventListener('click', updatePreview);
+
+    // Resizable splitters
+    (function(){
+      const split1 = document.getElementById('split1');
+      const split2 = document.getElementById('split2');
+      const left = document.getElementById('blocklyDiv');
+      const mid = document.getElementById('codePane');
+      const right = document.getElementById('previewPane');
+      let drag = null;
+      function startDrag(e, a, b){
+        e.preventDefault();
+        drag = { startX: e.clientX, a, b, aw: a.getBoundingClientRect().width, bw: b.getBoundingClientRect().width };
+        document.body.style.userSelect = 'none';
+      }
+      function onMove(e){
+        if (!drag) return;
+        const dx = e.clientX - drag.startX;
+        const newA = Math.max(200, drag.aw + dx);
+        const newB = Math.max(200, drag.bw - dx);
+        drag.a.style.flex = 'unset';
+        drag.b.style.flex = 'unset';
+        drag.a.style.width = newA + 'px';
+        drag.b.style.width = newB + 'px';
+        try { codeEditor && codeEditor.refresh && codeEditor.refresh(); } catch{}
+        try { if (window.cmTabs) Object.values(cmTabs).forEach(ed => ed && ed.refresh && ed.refresh()); } catch{}
+        try { if (window.Blockly && window.workspace) Blockly.svgResize(workspace); } catch{}
+      }
+      function endDrag(){ drag = null; document.body.style.userSelect = ''; }
+      split1.addEventListener('mousedown', (e) => startDrag(e, left, mid));
+      split2.addEventListener('mousedown', (e) => startDrag(e, mid, right));
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', endDrag);
     })();
+    // Initial preview
+    updatePreview();
   </script>
 </body>
 </html>
