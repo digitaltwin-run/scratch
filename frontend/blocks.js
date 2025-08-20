@@ -55,6 +55,27 @@ Blockly.defineBlocksWithJsonArray([
   }
 ]);
 
+// Additional Webgen blocks for nested elements
+Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "web_element_with_children",
+    "message0": "element %1 id %2 text %3 class %4 style %5 children %6",
+    "args0": [
+      { "type": "field_dropdown", "name": "TAG", "options": [["div","div"],["section","section"],["h1","h1"],["p","p"],["span","span"]] },
+      { "type": "field_input", "name": "ID", "text": "" },
+      { "type": "input_value", "name": "TEXT" },
+      { "type": "input_value", "name": "CLASS" },
+      { "type": "input_value", "name": "STYLE" },
+      { "type": "input_statement", "name": "CHILDREN" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 60,
+    "tooltip": "Dodaje element z zagnieżdżonymi dziećmi (HTML)",
+    "helpUrl": ""
+  }
+]);
+
 // Webgen blocks (HTML/CSS project generation)
 Blockly.defineBlocksWithJsonArray([
   {
@@ -97,6 +118,32 @@ Blockly.defineBlocksWithJsonArray([
     "nextStatement": null,
     "colour": 160,
     "tooltip": "Dodaje prostą regułę CSS",
+    "helpUrl": ""
+  },
+  {
+    "type": "css_rule_group",
+    "message0": "CSS rule selector %1 declarations %2",
+    "args0": [
+      { "type": "field_input", "name": "SEL", "text": "body" },
+      { "type": "input_statement", "name": "DECLS" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 160,
+    "tooltip": "Reguła CSS z wieloma deklaracjami",
+    "helpUrl": ""
+  },
+  {
+    "type": "css_decl",
+    "message0": "property %1 value %2",
+    "args0": [
+      { "type": "field_input", "name": "PROP", "text": "color" },
+      { "type": "input_value", "name": "VAL" }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 120,
+    "tooltip": "Deklaracja CSS (własność: wartość)",
     "helpUrl": ""
   }
 ]);

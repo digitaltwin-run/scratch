@@ -38,7 +38,10 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="utf-8">
     <title>Blockly YAML Editor - {{ filename }}</title>
-    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly@9.4.2/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly@9.4.2/blocks_compressed.js"></script>
+    <script src="https://unpkg.com/blockly@9.4.2/javascript_compressed.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -175,7 +178,6 @@ HTML_TEMPLATE = '''
         {% else %}
         <category name="YAML" colour="290">
             <block type="yaml_object"></block>
-            <block type="yaml_array"></block>
             <block type="yaml_key_value"></block>
             <block type="yaml_string"></block>
             <block type="yaml_number"></block>
@@ -195,6 +197,8 @@ HTML_TEMPLATE = '''
     </xml>
 
     <script>
+        // Używany typ pliku po stronie JS
+        var FILE_TYPE = '{{ file_type }}';
         // Definicje bloków dla Docker Compose
         Blockly.Blocks['compose_root'] = {
             init: function() {
@@ -270,6 +274,50 @@ HTML_TEMPLATE = '''
                 this.appendDummyInput()
                     .appendField("volume:")
                     .appendField(new Blockly.FieldTextInput("./data:/data"), "VOLUME");
+                this.setPreviousStatement(true, "Volume");
+                this.setNextStatement(true, "Volume");
+                this.setColour(230);
+            }
+        };
+
+        Blockly.Blocks['compose_networks'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("networks:")
+                    .appendField(new Blockly.FieldTextInput("default"), "NETWORK");
+                this.setPreviousStatement(true, "Network");
+                this.setNextStatement(true, "Network");
+                this.setColour(230);
+            }
+        };
+
+        Blockly.Blocks['compose_depends_on'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("depends_on:")
+                    .appendField(new Blockly.FieldTextInput("db,cache"), "DEPS");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(230);
+            }
+        };
+
+        Blockly.Blocks['compose_restart'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("restart:")
+                    .appendField(new Blockly.FieldDropdown([["no","no"],["always","always"],["on-failure","on-failure"],["unless-stopped","unless-stopped"]]), "POLICY");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(230);
+            }
+        };
+
+        Blockly.Blocks['compose_command'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("command:")
+                    .appendField(new Blockly.FieldTextInput("/start.sh"), "CMD");
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(230);
@@ -310,6 +358,164 @@ HTML_TEMPLATE = '''
             }
         };
 
+        Blockly.Blocks['dockerfile_expose'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("EXPOSE")
+                    .appendField(new Blockly.FieldNumber(80, 1), "PORT");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_env'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("ENV")
+                    .appendField(new Blockly.FieldTextInput("KEY"), "KEY")
+                    .appendField(new Blockly.FieldTextInput("value"), "VALUE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_copy'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("COPY")
+                    .appendField(new Blockly.FieldTextInput("src"), "SRC")
+                    .appendField(new Blockly.FieldTextInput("dest"), "DEST");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_add'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("ADD")
+                    .appendField(new Blockly.FieldTextInput("src"), "SRC")
+                    .appendField(new Blockly.FieldTextInput("dest"), "DEST");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_workdir'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("WORKDIR")
+                    .appendField(new Blockly.FieldTextInput("/app"), "DIR");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_user'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("USER")
+                    .appendField(new Blockly.FieldTextInput("root"), "USER");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_arg'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("ARG")
+                    .appendField(new Blockly.FieldTextInput("NAME=value"), "ARG");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_entrypoint'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("ENTRYPOINT")
+                    .appendField(new Blockly.FieldTextInput('["/entrypoint.sh"]'), "ENTRY");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_volume'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("VOLUME")
+                    .appendField(new Blockly.FieldTextInput('["/data"]'), "VOL");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        Blockly.Blocks['dockerfile_label'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("LABEL")
+                    .appendField(new Blockly.FieldTextInput("key=value"), "LABEL");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+
+        // Minimalne bloki YAML (ogólne)
+        Blockly.Blocks['yaml_object'] = {
+            init: function() {
+                this.appendDummyInput().appendField("object name")
+                    .appendField(new Blockly.FieldTextInput("root"), "NAME");
+                this.appendStatementInput("FIELDS").setCheck(null).appendField(":");
+                this.setColour(290);
+            }
+        };
+        Blockly.Blocks['yaml_key_value'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField(new Blockly.FieldTextInput("key"), "KEY")
+                    .appendField(":")
+                    .appendField(new Blockly.FieldTextInput("value"), "VAL");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(290);
+            }
+        };
+        Blockly.Blocks['yaml_string'] = {
+            init: function() {
+                this.appendDummyInput().appendField("string")
+                    .appendField(new Blockly.FieldTextInput("text"), "S");
+                this.setOutput(true, null);
+                this.setColour(290);
+            }
+        };
+        Blockly.Blocks['yaml_number'] = {
+            init: function() {
+                this.appendDummyInput().appendField("number")
+                    .appendField(new Blockly.FieldNumber(0), "N");
+                this.setOutput(true, null);
+                this.setColour(290);
+            }
+        };
+        Blockly.Blocks['yaml_boolean'] = {
+            init: function() {
+                this.appendDummyInput().appendField("boolean")
+                    .appendField(new Blockly.FieldDropdown([["true","true"],["false","false"]]), "B");
+                this.setOutput(true, null);
+                this.setColour(290);
+            }
+        };
+
         // Generatory kodu
         Blockly.JavaScript['compose_root'] = function(block) {
             var services = Blockly.JavaScript.statementToCode(block, 'SERVICES');
@@ -345,6 +551,112 @@ HTML_TEMPLATE = '''
             return '    ports:\\n      - "' + ports + '"\\n';
         };
 
+        Blockly.JavaScript['compose_environment'] = function(block) {
+            var key = block.getFieldValue('KEY');
+            var val = block.getFieldValue('VALUE');
+            return '    environment:\\n      ' + key + ': "' + val + '"\\n';
+        };
+
+        Blockly.JavaScript['compose_volumes'] = function(block) {
+            var vol = block.getFieldValue('VOLUME');
+            return '    volumes:\\n      - "' + vol + '"\\n';
+        };
+
+        Blockly.JavaScript['compose_networks'] = function(block) {
+            var net = block.getFieldValue('NETWORK');
+            return '    networks:\\n      - "' + net + '"\\n';
+        };
+
+        Blockly.JavaScript['compose_depends_on'] = function(block) {
+            var deps = block.getFieldValue('DEPS');
+            var items = (deps || '').split(',').map(function(s){return s.trim();}).filter(Boolean);
+            if (!items.length) return '';
+            var out = '    depends_on:\\n';
+            items.forEach(function(d){ out += '      - ' + d + '\\n'; });
+            return out;
+        };
+
+        Blockly.JavaScript['compose_restart'] = function(block) {
+            var pol = block.getFieldValue('POLICY');
+            return '    restart: ' + pol + '\\n';
+        };
+
+        Blockly.JavaScript['compose_command'] = function(block) {
+            var cmd = block.getFieldValue('CMD');
+            return '    command: ' + cmd + '\\n';
+        };
+
+        // Dockerfile generators
+        Blockly.JavaScript['dockerfile_from'] = function(block) {
+            var img = block.getFieldValue('IMAGE');
+            return 'FROM ' + img + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_run'] = function(block) {
+            var cmd = block.getFieldValue('COMMAND');
+            return 'RUN ' + cmd + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_cmd'] = function(block) {
+            var cmd = block.getFieldValue('COMMAND');
+            return 'CMD ' + cmd + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_expose'] = function(block) {
+            var p = block.getFieldValue('PORT');
+            return 'EXPOSE ' + p + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_env'] = function(block) {
+            var k = block.getFieldValue('KEY');
+            var v = block.getFieldValue('VALUE');
+            return 'ENV ' + k + ' ' + v + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_copy'] = function(block) {
+            var s = block.getFieldValue('SRC');
+            var d = block.getFieldValue('DEST');
+            return 'COPY ' + s + ' ' + d + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_add'] = function(block) {
+            var s = block.getFieldValue('SRC');
+            var d = block.getFieldValue('DEST');
+            return 'ADD ' + s + ' ' + d + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_workdir'] = function(block) {
+            var d = block.getFieldValue('DIR');
+            return 'WORKDIR ' + d + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_user'] = function(block) {
+            var u = block.getFieldValue('USER');
+            return 'USER ' + u + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_arg'] = function(block) {
+            var a = block.getFieldValue('ARG');
+            return 'ARG ' + a + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_entrypoint'] = function(block) {
+            var e = block.getFieldValue('ENTRY');
+            return 'ENTRYPOINT ' + e + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_volume'] = function(block) {
+            var v = block.getFieldValue('VOL');
+            return 'VOLUME ' + v + '\\n';
+        };
+        Blockly.JavaScript['dockerfile_label'] = function(block) {
+            var l = block.getFieldValue('LABEL');
+            return 'LABEL ' + l + '\\n';
+        };
+
+        // YAML (generic) generators
+        Blockly.JavaScript['yaml_object'] = function(block) {
+            var name = block.getFieldValue('NAME');
+            var fields = Blockly.JavaScript.statementToCode(block, 'FIELDS') || '';
+            // wcięcie dla pod-bloków
+            var indented = fields.replace(/^/gm, '  ');
+            return name + ':\\n' + indented;
+        };
+        Blockly.JavaScript['yaml_key_value'] = function(block) {
+            var k = block.getFieldValue('KEY');
+            var v = block.getFieldValue('VAL');
+            return '  ' + k + ': ' + v + '\\n';
+        };
+
         // Inicjalizacja Blockly
         var workspace = Blockly.inject('blocklyDiv', {
             toolbox: document.getElementById('toolbox'),
@@ -365,18 +677,29 @@ HTML_TEMPLATE = '''
             }
         });
 
+        // Lokalny wskaźnik zmian (dirty)
+        var dirty = false;
+
         // Auto-save co 10 sekund
         var autoSaveInterval = setInterval(function() {
-            if (workspace.isDirty()) {
-                saveFile(true);
-            }
+            if (dirty) { saveFile(true); }
         }, 10000);
 
         function generateYAML() {
             try {
                 var code = Blockly.JavaScript.workspaceToCode(workspace);
                 document.getElementById('yamlOutput').textContent = code || '# Empty configuration';
-                document.getElementById('errorDiv').innerHTML = '';
+                // Walidacja YAML (dla plików nie-będących Dockerfile)
+                if (typeof jsyaml !== 'undefined' && FILE_TYPE !== 'dockerfile') {
+                    try {
+                        jsyaml.load(code || '');
+                        document.getElementById('errorDiv').innerHTML = '<div style="background:#2ecc71;color:#fff;padding:6px;border-radius:4px;">✓ YAML valid</div>';
+                    } catch (err) {
+                        document.getElementById('errorDiv').innerHTML = '<div class="error">YAML error: ' + (err && err.message ? err.message : err) + '</div>';
+                    }
+                } else {
+                    document.getElementById('errorDiv').innerHTML = '';
+                }
             } catch (e) {
                 showError('Error generating YAML: ' + e.message);
             }
@@ -397,14 +720,13 @@ HTML_TEMPLATE = '''
                 if (data.success) {
                     var status = document.getElementById('saveStatus');
                     status.textContent = isAutoSave ? '✓ Auto-saved' : '✓ Saved';
+                    dirty = false;
                     setTimeout(() => { status.textContent = ''; }, 3000);
                 } else {
                     showError('Save failed: ' + data.error);
                 }
             })
-            .catch(error => {
-                showError('Save error: ' + error);
-            });
+            .catch(err => showError('Save failed: ' + err.message));
         }
 
         function testDocker() {
@@ -462,14 +784,13 @@ HTML_TEMPLATE = '''
                 event.type == Blockly.Events.BLOCK_DELETE ||
                 event.type == Blockly.Events.BLOCK_MOVE) {
                 generateYAML();
+                dirty = true;
             }
         });
 
         // Cleanup on window close
         window.addEventListener('beforeunload', function(e) {
-            if (workspace.isDirty()) {
-                saveFile(false);
-            }
+            if (dirty) { saveFile(false); }
         });
     </script>
 </body>
@@ -565,14 +886,23 @@ def test_docker():
         import subprocess
         
         if 'docker-compose' in current_file.lower():
-            result = subprocess.run(
-                ['docker-compose', '-f', current_file, 'config'],
-                capture_output=True,
-                text=True
-            )
+            # Prefer docker compose, fallback to docker-compose
+            attempts = [
+                ['docker', 'compose', '-f', current_file, 'config'],
+                ['docker-compose', '-f', current_file, 'config']
+            ]
+            last = None
+            for cmd in attempts:
+                last = subprocess.run(cmd, capture_output=True, text=True)
+                if last.returncode == 0:
+                    result = last
+                    break
+            else:
+                result = last
         else:  # Dockerfile
+            # Build syntax check by running a quiet build (may still take time)
             result = subprocess.run(
-                ['docker', 'build', '-f', current_file, '--no-cache', '--dry-run', '.'],
+                ['docker', 'build', '-q', '-f', current_file, '.'],
                 capture_output=True,
                 text=True
             )

@@ -97,6 +97,8 @@
       <block type="web_set_title"></block>
       <block type="web_add_element"></block>
       <block type="css_add_rule"></block>
+      <block type="css_rule_group"></block>
+      <block type="css_decl"></block>
     </category>
     <sep></sep>
     <category name="Projekt">
@@ -183,8 +185,8 @@
     // Initialize MQTT with defaults
     connectMqtt();
   </script>
-  <script src="blocks.js?v=6"></script>
-  <script src="generators.js?v=6"></script>
+  <script src="blocks.js?v=8"></script>
+  <script src="generators.js?v=8"></script>
   <script>
     // Blockly init (after custom blocks are loaded)
     const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox') });
@@ -295,28 +297,34 @@
 
     // Helpers to simulate webgen (__WEB__) without touching real DOM/MQTT
     function createWebCollector(){
-      const state = { title: 'Projekt', elements: [], rules: [], used: false };
+      const state = { title: 'Projekt', rules: [], used: false };
+      const root = { tag: null, id: '', text: '', className: '', style: '', children: [] };
+      const stack = [root];
+      const top = () => stack[stack.length - 1];
       const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+      const renderNode = (n) => {
+        const idAttr = n.id ? ` id="${esc(n.id)}"` : '';
+        const clsAttr = n.className ? ` class="${esc(n.className)}"` : '';
+        const styAttr = n.style ? ` style="${esc(n.style)}"` : '';
+        const content = `${esc(n.text || '')}${(n.children||[]).map(renderNode).join('')}`;
+        return `<${n.tag}${idAttr}${clsAttr}${styAttr}>${content}</${n.tag}>`;
+      };
       return {
         setTitle(t){ state.used = true; state.title = String(t); },
         addElement(tag, id, text, cls, sty){
           state.used = true;
-          state.elements.push({
-            tag,
-            id: id||'',
-            text: String(text||''),
-            className: String(cls||''),
-            style: String(sty||'')
-          });
+          top().children.push({ tag, id: id||'', text: String(text||''), className: String(cls||''), style: String(sty||''), children: [] });
         },
+        open(tag, id, text, cls, sty){
+          state.used = true;
+          const node = { tag, id: id||'', text: String(text||''), className: String(cls||''), style: String(sty||''), children: [] };
+          top().children.push(node);
+          stack.push(node);
+        },
+        close(){ if (stack.length > 1) stack.pop(); },
         addCssRule(sel, prop, val){ state.used = true; state.rules.push({ sel:String(sel||''), prop:String(prop||''), val:String(val||'') }); },
         build(){
-          const body = state.elements.map(e => {
-            const idAttr = e.id ? ` id="${esc(e.id)}"` : '';
-            const clsAttr = e.className ? ` class="${esc(e.className)}"` : '';
-            const styAttr = e.style ? ` style="${esc(e.style)}"` : '';
-            return `<${e.tag}${idAttr}${clsAttr}${styAttr}>${esc(e.text)}</${e.tag}>`;
-          }).join('\n');
+          const body = root.children.map(renderNode).join('\n');
           const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(state.title)}</title></head><body>\n${body}\n</body></html>`;
           const css = state.rules.map(r => `${r.sel}{ ${r.prop}: ${r.val}; }`).join('\n');
           return { html, css, used: state.used };
@@ -385,6 +393,21 @@
     <field name="SEL">body</field>
     <field name="PROP">font-family</field>
     <value name="VAL"><block type="text"><field name="TEXT">system-ui, Arial, sans-serif</field></block></value>
+  </block>
+  <block type="css_rule_group" id="cg1" x="20" y="220">
+    <field name="SEL">h1.title</field>
+    <statement name="DECLS">
+      <block type="css_decl">
+        <field name="PROP">color</field>
+        <value name="VAL"><block type="text"><field name="TEXT">#0a7</field></block></value>
+        <next>
+          <block type="css_decl">
+            <field name="PROP">font-size</field>
+            <value name="VAL"><block type="text"><field name="TEXT">32px</field></block></value>
+          </block>
+        </next>
+      </block>
+    </statement>
   </block>
   <block type="mqtt_on_message" id="m1" x="360" y="20">
     <field name="TOPIC">sensors/i2c/64</field>
@@ -621,13 +644,14 @@
       } else {
         html = base + `<style>${css || ''}</style>`;
       }
-      // Inject a no-op __WEB__ stub before user JS to avoid runtime errors from webgen calls
-      const webStub = `window.__WEB__ = window.__WEB__ || { setTitle: function(){}, addElement: function(){}, addCssRule: function(){} };`;
-      const combinedJs = `${webStub}\n${js || ''}`;
+      // Inject no-op stubs before user JS to avoid runtime errors inside preview
+      const webStub = `window.__WEB__ = window.__WEB__ || { setTitle: function(){}, addElement: function(){}, open: function(){}, close: function(){}, addCssRule: function(){} };`;
+      const mqttStub = `window.client = window.client || { publish:function(){}, subscribe:function(){}, on:function(){} };`;
+      const combinedJs = `${webStub}\n${mqttStub}\n${js || ''}`;
       if (html.includes('</body>')) {
-        html = html.replace('</body>', `<script>${combinedJs.replace(/<\\/script>/g, '<\\/script>')}<\/script></body>`);
+        html = html.replace('</body>', `<script>${combinedJs.replace(/<\/script>/gi, '<\\/script>')}<\/script></body>`);
       } else {
-        html = html + `<script>${combinedJs.replace(/<\\/script>/g, '<\\/script>')}<\/script>`;
+        html = html + `<script>${combinedJs.replace(/<\/script>/gi, '<\\/script>')}<\/script>`;
       }
       return html;
     }

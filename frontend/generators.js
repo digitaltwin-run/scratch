@@ -19,11 +19,44 @@ Blockly.JavaScript['web_add_element'] = function(block){
   const sty = Blockly.JavaScript.valueToCode(block, 'STYLE', Blockly.JavaScript.ORDER_ATOMIC) || '""';
   return `__WEB__.addElement("${tag}", ${JSON.stringify(id)}, String(${txt}), String(${cls}), String(${sty}));\n`;
 };
+// Nested element with children
+Blockly.JavaScript['web_element_with_children'] = function(block){
+  const tag = block.getFieldValue('TAG');
+  const id = block.getFieldValue('ID') || '';
+  const txt = Blockly.JavaScript.valueToCode(block, 'TEXT', Blockly.JavaScript.ORDER_ATOMIC) || '""';
+  const cls = Blockly.JavaScript.valueToCode(block, 'CLASS', Blockly.JavaScript.ORDER_ATOMIC) || '""';
+  const sty = Blockly.JavaScript.valueToCode(block, 'STYLE', Blockly.JavaScript.ORDER_ATOMIC) || '""';
+  const children = Blockly.JavaScript.statementToCode(block, 'CHILDREN') || '';
+  let code = '';
+  code += `__WEB__.open("${tag}", ${JSON.stringify(id)}, String(${txt}), String(${cls}), String(${sty}));\n`;
+  code += children;
+  code += `__WEB__.close();\n`;
+  return code;
+};
 Blockly.JavaScript['css_add_rule'] = function(block){
   const sel = block.getFieldValue('SEL') || 'body';
   const prop = block.getFieldValue('PROP') || 'color';
   const val = Blockly.JavaScript.valueToCode(block, 'VAL', Blockly.JavaScript.ORDER_ATOMIC) || '"black"';
   return `__WEB__.addCssRule(${JSON.stringify(sel)}, ${JSON.stringify(prop)}, String(${val}));\n`;
+};
+
+// CSS grouping: css_decl emits an array entry; css_rule_group expands them into addCssRule calls
+Blockly.JavaScript['css_decl'] = function(block){
+  const prop = block.getFieldValue('PROP') || 'color';
+  const val = Blockly.JavaScript.valueToCode(block, 'VAL', Blockly.JavaScript.ORDER_ATOMIC) || '"black"';
+  // produce a fragment valid inside an array literal
+  return `{ prop: ${JSON.stringify(prop)}, val: String(${val}) },\n`;
+};
+
+Blockly.JavaScript['css_rule_group'] = function(block){
+  const sel = block.getFieldValue('SEL') || 'body';
+  const decls = Blockly.JavaScript.statementToCode(block, 'DECLS') || '';
+  let code = '';
+  code += `(function(){\n`;
+  code += `  const __d = [\n${decls}  ];\n`;
+  code += `  for (let i=0;i<__d.length;i++){ const d=__d[i]; __WEB__.addCssRule(${JSON.stringify(sel)}, String(d.prop), String(d.val)); }\n`;
+  code += `})();\n`;
+  return code;
 };
 
 Blockly.JavaScript['mqtt_subscribe'] = function(block) {
