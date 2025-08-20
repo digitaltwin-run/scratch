@@ -1,4 +1,39 @@
-# Blockly YAML Editor
+# Minimal Offline YAML/Dockerfile Editor (Blockly – deprecated)
+
+Ten katalog (`scratch/1/`) zawiera minimalny, całkowicie offline edytor YAML/Dockerfile oraz zdeprecjonowany legacy edytor Blockly.
+
+- Co powinien robić projekt:
+  - Edytować i testować pliki YAML/Dockerfile w 100% offline (bez CDN).
+  - Udostępnić prosty UI: zapis/auto‑zapis, kopie zapasowe, przywracanie, walidację i formatowanie.
+  - Test Docker: offline‑friendly sprawdzenie `docker compose config` oraz build Dockerfile bez pobierania (`--pull=false`) z jasnymi komunikatami.
+  - Serwować lokalne zasoby frontendowe (Blockly/mqtt.js/CodeMirror) z katalogu `frontend/vendor/`.
+
+- Co jest zrobione (2025-08-21):
+  - Minimalny edytor offline: `simple-yaml-editor.py` (brak zależności CDN).
+  - No‑op service worker route – brak 404 w logach.
+  - Ulepszone komunikaty testu Docker w trybie offline (sprawdzanie obrazu bazowego, `--pull=false`, lepsze hinty).
+  - Zdeprecjonowany `blocked.py` (legacy Blockly) – pokazuje stronę o przeniesieniu na edytor offline.
+  - Frontend zvendorowany: `frontend/vendor/` kopiowany w Dockerfile frontendu; `frontend/index.html` używa plików lokalnych.
+  - Dokumentacja uaktualniona.
+
+- TODO (bieżące):
+  1) Tryb „offline static check only” dla Dockerfile (pomiń build, tylko lint/weryfikacja FROM) – plan.
+  2) Testy E2E dla edytora offline (save/restore/test-docker) – plan.
+  3) Pakietowanie (np. `pipx`/`pyinstaller`) – plan.
+  4) Bardziej szczegółowa walidacja YAML/Dockerfile – plan.
+
+Szybki start (offline):
+
+```bash
+python3 1/simple-yaml-editor.py path/to/file.yaml --port 8082
+# Dockerfile lub docker-compose.yaml też działa
+```
+
+Frontend (Nginx) offline: patrz `scratch/frontend/` – vendor libs w `frontend/vendor/`, port domyślnie 8080.
+
+---
+
+## Legacy: Blockly YAML Editor (oryginalna dokumentacja)
 
 Visual editor for YAML files (docker-compose.yaml, etc.) and Dockerfiles using Google Blockly.
 
