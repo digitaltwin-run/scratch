@@ -53,6 +53,36 @@ Po uruchomieniu:
 
 Uwaga: na RPi wymagane urządzenie I2C: `/dev/i2c-1` (mapowane do kontenera backendu).
 
+## Konfiguracja (.env)
+
+Wszystkie kluczowe ustawienia są w pliku `.env` w katalogu głównym (`scratch/.env`).
+
+Domyślne wartości:
+
+```ini
+# Frontend
+FRONTEND_HTTP_PORT=8080
+
+# Mosquitto (MQTT broker)
+MOSQUITTO_TCP_PORT=1883
+MOSQUITTO_WS_PORT=9001
+
+# Backend bridge (Python)
+MQTT_HOST=mosquitto
+MQTT_PORT=1883
+TOPIC_PREFIX=sensors/i2c
+ACT_TOPIC_PREFIX=actuators/i2c
+I2C_BUS_ID=1
+PUBLISH_INTERVAL_SEC=1.0
+```
+
+Zmiany w `.env` zastosujesz przy następnym `docker compose up -d`.
+
+### Rozwiązywanie problemów
+
+* __Port 8080 zajęty (błąd: "address already in use")__
+  - Zmień `FRONTEND_HTTP_PORT` w `.env` (np. na `8081`) i uruchom ponownie `docker compose up -d`.
+
 ---
 
 ## Tematy MQTT (konwencja)

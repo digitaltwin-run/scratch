@@ -76,14 +76,14 @@
       client.publish(`actuators/i2c/${addr}`, JSON.stringify({ value }));
     }
 
-    // Blockly init
-    const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox') });
-
-    // Include blocks and generators
+    // Include blocks and generators (loaded below, then we will inject Blockly)
   </script>
   <script src="blocks.js"></script>
   <script src="generators.js"></script>
   <script>
+    // Blockly init (after custom blocks are loaded)
+    const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox') });
+
     function runCode(){
       Blockly.JavaScript.INFINITE_LOOP_TRAP = null;
       const code = Blockly.JavaScript.workspaceToCode(workspace);
@@ -91,14 +91,18 @@
       try { eval(code); } catch(e){ alert(e); }
     }
 
-    // Example initial XML
-    const xmlText = `
-      <xml xmlns="https://developers.google.com/blockly/xml">
-        <block type="mqtt_subscribe" x="20" y="20">
-          <field name="TOPIC">sensors/i2c/64</field>
-        </block>
-      </xml>`;
-    Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(xmlText), workspace);
+    // Example: programmatically create an initial block (avoids XML helpers differences across versions)
+    (function initWorkspace(){
+      try {
+        const b = workspace.newBlock('mqtt_subscribe');
+        b.setFieldValue('sensors/i2c/64', 'TOPIC');
+        b.initSvg();
+        b.render();
+        b.moveBy(20, 20);
+      } catch (e) {
+        console.warn('Could not create initial block:', e);
+      }
+    })();
   </script>
 </body>
 </html>

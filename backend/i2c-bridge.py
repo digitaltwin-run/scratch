@@ -62,7 +62,6 @@ def on_connect(client, userdata, flags, rc):
         logger.warning("MQTT connect returned code %s", rc)
 
 
-
 def on_message(client, userdata, msg):
     try:
         # Expect topic like: actuators/i2c/<addr>
@@ -94,7 +93,6 @@ while True:
     except Exception as e:
         logger.warning("MQTT connect failed: %s. Retrying in 2s...", e)
         time.sleep(2)
-
 
 
 def read_sensor(addr: int):
