@@ -3,6 +3,7 @@
 .idea/*.iml
 .db
 .env
+venv
 # Logs
 logs
 *.log

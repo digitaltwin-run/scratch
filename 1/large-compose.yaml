@@ -1,0 +1,332 @@
+version: "3.8"
+services:
+  service_1:
+    image: nginx:latest
+    container_name: service_1
+    ports:
+      - "801:80"
+    environment:
+      - ENV_VAR_1=value_1
+    volumes:
+      - ./data_1:/data
+    networks:
+      - network_1
+  service_2:
+    image: nginx:latest
+    container_name: service_2
+    ports:
+      - "802:80"
+    environment:
+      - ENV_VAR_2=value_2
+    volumes:
+      - ./data_2:/data
+    networks:
+      - network_2
+  service_3:
+    image: nginx:latest
+    container_name: service_3
+    ports:
+      - "803:80"
+    environment:
+      - ENV_VAR_3=value_3
+    volumes:
+      - ./data_3:/data
+    networks:
+      - network_3
+  service_4:
+    image: nginx:latest
+    container_name: service_4
+    ports:
+      - "804:80"
+    environment:
+      - ENV_VAR_4=value_4
+    volumes:
+      - ./data_4:/data
+    networks:
+      - network_4
+  service_5:
+    image: nginx:latest
+    container_name: service_5
+    ports:
+      - "805:80"
+    environment:
+      - ENV_VAR_5=value_5
+    volumes:
+      - ./data_5:/data
+    networks:
+      - network_5
+  service_6:
+    image: nginx:latest
+    container_name: service_6
+    ports:
+      - "806:80"
+    environment:
+      - ENV_VAR_6=value_6
+    volumes:
+      - ./data_6:/data
+    networks:
+      - network_6
+  service_7:
+    image: nginx:latest
+    container_name: service_7
+    ports:
+      - "807:80"
+    environment:
+      - ENV_VAR_7=value_7
+    volumes:
+      - ./data_7:/data
+    networks:
+      - network_7
+  service_8:
+    image: nginx:latest
+    container_name: service_8
+    ports:
+      - "808:80"
+    environment:
+      - ENV_VAR_8=value_8
+    volumes:
+      - ./data_8:/data
+    networks:
+      - network_8
+  service_9:
+    image: nginx:latest
+    container_name: service_9
+    ports:
+      - "809:80"
+    environment:
+      - ENV_VAR_9=value_9
+    volumes:
+      - ./data_9:/data
+    networks:
+      - network_9
+  service_10:
+    image: nginx:latest
+    container_name: service_10
+    ports:
+      - "8010:80"
+    environment:
+      - ENV_VAR_10=value_10
+    volumes:
+      - ./data_10:/data
+    networks:
+      - network_10
+  service_11:
+    image: nginx:latest
+    container_name: service_11
+    ports:
+      - "8011:80"
+    environment:
+      - ENV_VAR_11=value_11
+    volumes:
+      - ./data_11:/data
+    networks:
+      - network_11
+  service_12:
+    image: nginx:latest
+    container_name: service_12
+    ports:
+      - "8012:80"
+    environment:
+      - ENV_VAR_12=value_12
+    volumes:
+      - ./data_12:/data
+    networks:
+      - network_12
+  service_13:
+    image: nginx:latest
+    container_name: service_13
+    ports:
+      - "8013:80"
+    environment:
+      - ENV_VAR_13=value_13
+    volumes:
+      - ./data_13:/data
+    networks:
+      - network_13
+  service_14:
+    image: nginx:latest
+    container_name: service_14
+    ports:
+      - "8014:80"
+    environment:
+      - ENV_VAR_14=value_14
+    volumes:
+      - ./data_14:/data
+    networks:
+      - network_14
+  service_15:
+    image: nginx:latest
+    container_name: service_15
+    ports:
+      - "8015:80"
+    environment:
+      - ENV_VAR_15=value_15
+    volumes:
+      - ./data_15:/data
+    networks:
+      - network_15
+  service_16:
+    image: nginx:latest
+    container_name: service_16
+    ports:
+      - "8016:80"
+    environment:
+      - ENV_VAR_16=value_16
+    volumes:
+      - ./data_16:/data
+    networks:
+      - network_16
+  service_17:
+    image: nginx:latest
+    container_name: service_17
+    ports:
+      - "8017:80"
+    environment:
+      - ENV_VAR_17=value_17
+    volumes:
+      - ./data_17:/data
+    networks:
+      - network_17
+  service_18:
+    image: nginx:latest
+    container_name: service_18
+    ports:
+      - "8018:80"
+    environment:
+      - ENV_VAR_18=value_18
+    volumes:
+      - ./data_18:/data
+    networks:
+      - network_18
+  service_19:
+    image: nginx:latest
+    container_name: service_19
+    ports:
+      - "8019:80"
+    environment:
+      - ENV_VAR_19=value_19
+    volumes:
+      - ./data_19:/data
+    networks:
+      - network_19
+  service_20:
+    image: nginx:latest
+    container_name: service_20
+    ports:
+      - "8020:80"
+    environment:
+      - ENV_VAR_20=value_20
+    volumes:
+      - ./data_20:/data
+    networks:
+      - network_20
+  service_21:
+    image: nginx:latest
+    container_name: service_21
+    ports:
+      - "8021:80"
+    environment:
+      - ENV_VAR_21=value_21
+    volumes:
+      - ./data_21:/data
+    networks:
+      - network_21
+  service_22:
+    image: nginx:latest
+    container_name: service_22
+    ports:
+      - "8022:80"
+    environment:
+      - ENV_VAR_22=value_22
+    volumes:
+      - ./data_22:/data
+    networks:
+      - network_22
+  service_23:
+    image: nginx:latest
+    container_name: service_23
+    ports:
+      - "8023:80"
+    environment:
+      - ENV_VAR_23=value_23
+    volumes:
+      - ./data_23:/data
+    networks:
+      - network_23
+  service_24:
+    image: nginx:latest
+    container_name: service_24
+    ports:
+      - "8024:80"
+    environment:
+      - ENV_VAR_24=value_24
+    volumes:
+      - ./data_24:/data
+    networks:
+      - network_24
+  service_25:
+    image: nginx:latest
+    container_name: service_25
+    ports:
+      - "8025:80"
+    environment:
+      - ENV_VAR_25=value_25
+    volumes:
+      - ./data_25:/data
+    networks:
+      - network_25
+  service_26:
+    image: nginx:latest
+    container_name: service_26
+    ports:
+      - "8026:80"
+    environment:
+      - ENV_VAR_26=value_26
+    volumes:
+      - ./data_26:/data
+    networks:
+      - network_26
+  service_27:
+    image: nginx:latest
+    container_name: service_27
+    ports:
+      - "8027:80"
+    environment:
+      - ENV_VAR_27=value_27
+    volumes:
+      - ./data_27:/data
+    networks:
+      - network_27
+  service_28:
+    image: nginx:latest
+    container_name: service_28
+    ports:
+      - "8028:80"
+    environment:
+      - ENV_VAR_28=value_28
+    volumes:
+      - ./data_28:/data
+    networks:
+      - network_28
+  service_29:
+    image: nginx:latest
+    container_name: service_29
+    ports:
+      - "8029:80"
+    environment:
+      - ENV_VAR_29=value_29
+    volumes:
+      - ./data_29:/data
+    networks:
+      - network_29
+  service_30:
+    image: nginx:latest
+    container_name: service_30
+    ports:
+      - "8030:80"
+    environment:
+      - ENV_VAR_30=value_30
+    volumes:
+      - ./data_30:/data
+    networks:
+      - network_30

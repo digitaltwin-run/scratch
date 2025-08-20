@@ -1,0 +1,5 @@
+services:
+  web:
+    image: nginx
+  invalid_indent:
+ wrong_indent
