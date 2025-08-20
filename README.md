@@ -1,4 +1,84 @@
+# RPI Blockly IoT — aktualny skrót projektu
 
+Ten projekt dostarcza minimalny, uruchamialny stack dla Raspberry Pi 3 (i Linux) oparty o Docker:
+
+* __MQTT broker__ (`Eclipse Mosquitto`) z TCP i WebSocket
+* __Backend bridge (Python)__ do odczytu I2C i publikacji do MQTT
+* __Frontend (Nginx + HTML/JS)__ z Blockly i `mqtt.js`
+
+Całość uruchamiasz jednym poleceniem `docker compose up -d`.
+
+---
+
+## Architektura (skrót)
+
+RPi (I2C) → Python bridge → MQTT (TCP/WS) → Frontend (Blockly/mqtt.js)
+
+---
+
+## Struktura katalogów
+
+```
+scratch/
+├── docker-compose.yml
+├── backend/
+│   ├── Dockerfile
+│   └── i2c-bridge.py
+├── frontend/
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── blocks.js
+│   └── generators.js
+└── data/
+    └── mosquitto/
+        └── config/
+            └── mosquitto.conf
+```
+
+---
+
+## Szybki start
+
+W katalogu `scratch/`:
+
+```bash
+docker compose up -d
+```
+
+Po uruchomieniu:
+
+* __Frontend__: `http://<HOST_IP>:8080`
+* __MQTT TCP__: `mqtt://<HOST_IP>:1883`
+* __MQTT WS__: `ws://<HOST_IP>:9001`
+
+Uwaga: na RPi wymagane urządzenie I2C: `/dev/i2c-1` (mapowane do kontenera backendu).
+
+---
+
+## Tematy MQTT (konwencja)
+
+* `sensors/i2c/{addr}` — publikacje z backendu (retained, co ~1s)
+* `actuators/i2c/{addr}` — sterowanie (publikacja z frontendu → subskrypcja w backendzie)
+* `system/bridge/status` — status mostka (`online`/`offline`)
+
+---
+
+## Lista zadań (TODO)
+
+* __Backend: sterowanie aktuatorami__ — Zaimplementowane: subskrypcja `actuators/i2c/#` + zapis do I2C.
+* __Frontend: eksport/import Blockly.__ Zapisać/odczytać XML (np. localStorage + plik).
+* __Konfiguracja: bezpieczeństwo Mosquitto.__ W produkcji wyłączyć `allow_anonymous` i dodać auth.
+* __Parametryzacja:__ adresy I2C, interwał publikacji i prefix tematów przez zmienne środowiskowe.
+* __Healthcheck/observability:__ prosty endpoint/logi, ewentualnie topic `system/health`.
+* __Build na ARM:__ na innym hostcie użyć `docker buildx` (jeśli nie budujemy bezpośrednio na RPi).
+
+---
+
+## Aneks: dotychczasowe notatki (oryginalna treść poniżej)
+
+Poniżej pozostawiamy wcześniejsze, szczegółowe notatki/fragmenty – traktować jako rozszerzoną dokumentację i inspiracje.
+
+---
 
  **gotowe rozwiązanie dla RPi3 w Dockerze**, które od razu odpali i umożliwi:
 

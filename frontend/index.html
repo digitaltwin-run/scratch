@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RPI Blockly IoT</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 16px; }
+    #blocklyDiv { height: 420px; width: 100%; border: 1px solid #ddd; border-radius: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; margin: 12px 0; }
+    .card { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
+    .value { font-weight: 700; font-size: 1.4em; }
+    button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    button:hover { background: #f3f3f3; }
+    pre { background: #0b1021; color: #e6e6e6; padding: 10px; border-radius: 6px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>RPI Blockly IoT</h1>
+  <p>Połączono przez MQTT WebSocket. Wartości czujników aktualizują się w czasie rzeczywistym.</p>
+
+  <div class="grid">
+    <div class="card">Low: <span id="sensor-low" class="value">-</span></div>
+    <div class="card">Medium: <span id="sensor-medium" class="value">-</span></div>
+    <div class="card">High: <span id="sensor-high" class="value">-</span></div>
+  </div>
+
+  <div style="margin: 8px 0;">
+    <button onclick="writeActuator(0x50, 1)">Włącz aktuator 0x50</button>
+    <button onclick="writeActuator(0x50, 0)">Wyłącz aktuator 0x50</button>
+  </div>
+
+  <h3>Blockly</h3>
+  <div id="blocklyDiv"></div>
+  <xml id="toolbox" style="display:none">
+    <block type="mqtt_publish"></block>
+    <block type="mqtt_subscribe"></block>
+    <block type="set_element_text"></block>
+    <block type="controls_if"></block>
+    <block type="logic_compare"></block>
+    <block type="math_number"></block>
+    <block type="text"></block>
+    <block type="text_print"></block>
+  </xml>
+
+  <div style="margin: 10px 0;">
+    <button onclick="runCode()">▶ Uruchom wygenerowany kod</button>
+  </div>
+  <pre id="output">// Kod JS wygenerowany z Blockly pojawi się tutaj</pre>
+
+  <script>
+    // MQTT client (WebSocket)
+    const client = mqtt.connect('ws://' + location.hostname + ':9001');
+
+    client.on('connect', () => {
+      console.log('MQTT connected');
+      client.subscribe('sensors/i2c/64');
+      client.subscribe('sensors/i2c/65');
+      client.subscribe('sensors/i2c/66');
+    });
+
+    client.on('message', (topic, msg) => {
+      try {
+        const data = JSON.parse(msg.toString());
+        if (topic === 'sensors/i2c/64') document.getElementById('sensor-low').textContent = data.value;
+        if (topic === 'sensors/i2c/65') document.getElementById('sensor-medium').textContent = data.value;
+        if (topic === 'sensors/i2c/66') document.getElementById('sensor-high').textContent = data.value;
+      } catch (e) {
+        console.warn('Bad JSON on topic', topic, e);
+      }
+    });
+
+    function writeActuator(addr, value){
+      client.publish(`actuators/i2c/${addr}`, JSON.stringify({ value }));
+    }
+
+    // Blockly init
+    const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox') });
+
+    // Include blocks and generators
+  </script>
+  <script src="blocks.js"></script>
+  <script src="generators.js"></script>
+  <script>
+    function runCode(){
+      Blockly.JavaScript.INFINITE_LOOP_TRAP = null;
+      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      document.getElementById('output').textContent = code;
+      try { eval(code); } catch(e){ alert(e); }
+    }
+
+    // Example initial XML
+    const xmlText = `
+      <xml xmlns="https://developers.google.com/blockly/xml">
+        <block type="mqtt_subscribe" x="20" y="20">
+          <field name="TOPIC">sensors/i2c/64</field>
+        </block>
+      </xml>`;
+    Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(xmlText), workspace);
+  </script>
+</body>
+</html>
