@@ -13,7 +13,7 @@ import time
 import shutil
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, send_from_directory
 from flask_cors import CORS
 import argparse
 import signal
@@ -21,6 +21,11 @@ import atexit
 
 app = Flask(__name__)
 CORS(app)
+
+# Serve local vendor files for offline operation
+@app.route('/vendor/<path:filename>')
+def vendor_files(filename):
+    return send_from_directory('vendor', filename)
 
 # Globalne zmienne
 current_file = None
@@ -112,10 +117,12 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="utf-8">
     <title>Blockly YAML Editor - {{ filename }}</title>
-    <script src="https://unpkg.com/blockly@9.4.2/blockly.min.js"></script>
-    <script src="https://unpkg.com/blockly@9.4.2/blocks_compressed.js"></script>
-    <script src="https://unpkg.com/blockly@9.4.2/javascript_compressed.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="/vendor/blockly_compressed.js"></script>
+    <script src="/vendor/blocks_compressed.js"></script>
+    <script src="/vendor/javascript_compressed.js"></script>
+    <script src="/vendor/codemirror.min.js"></script>
+    <script src="/vendor/codemirror-yaml.min.js"></script>
+    <script src="/vendor/codemirror-dockerfile.min.js"></script>
     <style>
         body {
             margin: 0;

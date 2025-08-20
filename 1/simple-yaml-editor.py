@@ -22,6 +22,15 @@ import atexit
 app = Flask(__name__)
 CORS(app)
 
+# No-op service worker endpoints to silence noisy 404s from some browsers/devtools
+@app.route('/_static/out/browser/serviceWorker.js')
+def service_worker_js():
+    return app.response_class('/* offline noop service worker */', mimetype='application/javascript')
+
+@app.route('/_static/out/browser/serviceWorker.js.map')
+def service_worker_map():
+    return app.response_class('{"version":3,"file":"serviceWorker.js","sources":[],"mappings":""}', mimetype='application/json')
+
 # Global variables
 current_file = None
 current_content = None
@@ -454,9 +463,10 @@ def test_docker():
     
     try:
         import subprocess
-        
-        if 'docker-compose' in current_file.lower():
-            # Try docker compose, fallback to docker-compose
+
+        path_lower = current_file.lower()
+        # Compose files can be validated offline via 'config'
+        if 'docker-compose' in path_lower:
             attempts = [
                 ['docker', 'compose', '-f', current_file, 'config'],
                 ['docker-compose', '-f', current_file, 'config']
@@ -466,23 +476,58 @@ def test_docker():
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 if result.returncode == 0:
                     break
-        else:  # Dockerfile
-            result = subprocess.run(
-                ['docker', 'build', '-q', '-f', current_file, '.'],
-                capture_output=True,
-                text=True
-            )
-        
+            if result and result.returncode == 0:
+                return jsonify({'success': True, 'output': result.stdout[:800]})
+            err = (result.stderr if result else 'docker compose not available')
+            return jsonify({'success': False, 'error': err[:1200]})
+
+        # Dockerfile: provide offline-friendly checks before building
+        base_image = None
+        try:
+            with open(current_file, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    s = line.strip()
+                    if not s or s.startswith('#'):
+                        continue
+                    if s.upper().startswith('FROM '):
+                        # FROM <image> [AS name]
+                        parts = s.split()
+                        if len(parts) >= 2:
+                            base_image = parts[1]
+                        break
+        except Exception:
+            base_image = None
+
+        if base_image:
+            inspect = subprocess.run(['docker', 'image', 'inspect', base_image], capture_output=True, text=True)
+            if inspect.returncode != 0:
+                msg = (
+                    f"Base image '{base_image}' not found locally. Full build likely requires network access.\n"
+                    "Options while offline:\n"
+                    "- Pre-pull the base image when online: docker pull " + base_image + "\n"
+                    "- Use a locally cached base image\n"
+                    "- Or run the test when you have network access\n"
+                )
+                return jsonify({'success': False, 'error': msg})
+
+        # Attempt a quiet build without pulling new layers
+        cmd = ['docker', 'build', '--pull=false', '-q', '-f', current_file, '.']
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
         if result.returncode == 0:
-            return jsonify({
-                'success': True,
-                'output': result.stdout[:500]
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result.stderr
-            })
+            return jsonify({'success': True, 'output': result.stdout[:800]})
+
+        # Provide a clearer hint on common offline failures
+        err = (result.stderr or '').strip()
+        hint_lines = []
+        if 'npm install' in err or 'failed to fetch' in err or 'temporary failure in name resolution' in err:
+            hint_lines.append('This build step seems to require internet access (e.g., npm install).')
+        if base_image and ('pull access denied' in err or 'not found' in err or 'manifest unknown' in err):
+            hint_lines.append(f"The base image '{base_image}' may not be available locally while offline.")
+        if hint_lines:
+            err = ("\n".join(hint_lines) + "\n\n" + err)[:2000]
+        return jsonify({'success': False, 'error': err})
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
