@@ -38,10 +38,15 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="utf-8">
     <title>Blockly YAML Editor - {{ filename }}</title>
-    <script src="https://unpkg.com/blockly@9.4.2/blockly.min.js"></script>
-    <script src="https://unpkg.com/blockly@9.4.2/blocks_compressed.js"></script>
-    <script src="https://unpkg.com/blockly@9.4.2/javascript_compressed.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <!-- Blockly libraries with fallbacks -->
+    <script src="https://cdn.jsdelivr.net/npm/blockly@9.4.2/blockly.min.js" 
+            onerror="this.onerror=null; this.src='https://unpkg.com/blockly@9.4.2/blockly.min.js'"></script>
+    <script src="https://cdn.jsdelivr.net/npm/blockly@9.4.2/blocks_compressed.js"
+            onerror="this.onerror=null; this.src='https://unpkg.com/blockly@9.4.2/blocks_compressed.js'"></script>
+    <script src="https://cdn.jsdelivr.net/npm/blockly@9.4.2/javascript_compressed.js"
+            onerror="this.onerror=null; this.src='https://unpkg.com/blockly@9.4.2/javascript_compressed.js'"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"
+            onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js'"></script>
     <style>
         body {
             margin: 0;
@@ -197,9 +202,25 @@ HTML_TEMPLATE = '''
     </xml>
 
     <script>
-        // Używany typ pliku po stronie JS
-        var FILE_TYPE = '{{ file_type }}';
-        // Definicje bloków dla Docker Compose
+        // Check if Blockly loaded successfully
+        window.addEventListener('load', function() {
+            if (typeof Blockly === 'undefined') {
+                document.getElementById('blocklyDiv').innerHTML = 
+                    '<div style="padding:20px;text-align:center;color:#e74c3c;">' +
+                    '<h2>⚠️ Blockly Libraries Failed to Load</h2>' +
+                    '<p>The visual editor requires internet access to load Blockly libraries.</p>' +
+                    '<p>You can still edit the file manually using the preview panel on the right.</p>' +
+                    '<p>Or try refreshing the page to retry loading the libraries.</p>' +
+                    '</div>';
+                return;
+            }
+            initializeBlockly();
+        });
+
+        function initializeBlockly() {
+            // Używany typ pliku po stronie JS
+            var FILE_TYPE = '{{ file_type }}';
+            // Definicje bloków dla Docker Compose
         Blockly.Blocks['compose_root'] = {
             init: function() {
                 this.appendDummyInput()
@@ -792,6 +813,10 @@ HTML_TEMPLATE = '''
         window.addEventListener('beforeunload', function(e) {
             if (dirty) { saveFile(false); }
         });
+        
+        // Initial YAML generation
+        generateYAML();
+        } // End of initializeBlockly function
     </script>
 </body>
 </html>
