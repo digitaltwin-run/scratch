@@ -15,7 +15,9 @@ Blockly.JavaScript['web_add_element'] = function(block){
   const tag = block.getFieldValue('TAG');
   const id = block.getFieldValue('ID') || '';
   const txt = Blockly.JavaScript.valueToCode(block, 'TEXT', Blockly.JavaScript.ORDER_ATOMIC) || '""';
-  return `__WEB__.addElement("${tag}", ${JSON.stringify(id)}, String(${txt}));\n`;
+  const cls = Blockly.JavaScript.valueToCode(block, 'CLASS', Blockly.JavaScript.ORDER_ATOMIC) || '""';
+  const sty = Blockly.JavaScript.valueToCode(block, 'STYLE', Blockly.JavaScript.ORDER_ATOMIC) || '""';
+  return `__WEB__.addElement("${tag}", ${JSON.stringify(id)}, String(${txt}), String(${cls}), String(${sty}));\n`;
 };
 Blockly.JavaScript['css_add_rule'] = function(block){
   const sel = block.getFieldValue('SEL') || 'body';

@@ -71,11 +71,13 @@ Blockly.defineBlocksWithJsonArray([
   },
   {
     "type": "web_add_element",
-    "message0": "add element %1 id %2 text %3",
+    "message0": "add element %1 id %2 text %3 class %4 style %5",
     "args0": [
       { "type": "field_dropdown", "name": "TAG", "options": [["h1","h1"],["p","p"],["div","div"],["span","span"]] },
       { "type": "field_input", "name": "ID", "text": "" },
-      { "type": "input_value", "name": "TEXT" }
+      { "type": "input_value", "name": "TEXT" },
+      { "type": "input_value", "name": "CLASS" },
+      { "type": "input_value", "name": "STYLE" }
     ],
     "previousStatement": null,
     "nextStatement": null,

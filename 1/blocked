@@ -10,4 +10,4 @@ if [ -d "venv" ]; then
 fi
 
 # Uruchomienie edytora
-python3 blocked.py "$@"
+python3 blockly-yaml-editor.py "$@"
