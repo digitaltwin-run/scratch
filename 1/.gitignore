@@ -4,6 +4,8 @@
 .db
 .env
 venv
+venv/*
+.blocked
 # Logs
 logs
 *.log

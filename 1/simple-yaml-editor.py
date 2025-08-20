@@ -190,6 +190,9 @@ HTML_TEMPLATE = '''
         <div class="buttons">
             <button onclick="saveFile()">💾 Save</button>
             <button onclick="validateContent()">✓ Validate</button>
+            <label {{ 'style="display:none;"' if not is_docker else '' }}>
+                <input type="checkbox" id="staticOnly"> Static only
+            </label>
             <button onclick="testDocker()" {{ 'style="display:none;"' if not is_docker else '' }}>🐳 Test</button>
             <button onclick="loadBackup()">📁 Backup</button>
             <button onclick="formatContent()">🎨 Format</button>
@@ -302,13 +305,17 @@ HTML_TEMPLATE = '''
         }
         
         function testDocker() {
+            const staticOnlyEl = document.getElementById('staticOnly');
+            const staticOnly = staticOnlyEl ? staticOnlyEl.checked : false;
             fetch('/test-docker', {
-                method: 'POST'
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ static_only: staticOnly })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Docker test successful!\\n' + data.output);
+                    alert('Docker test successful!\n' + data.output);
                 } else {
                     showError('Docker test failed: ' + data.error);
                 }
@@ -463,6 +470,8 @@ def test_docker():
     
     try:
         import subprocess
+        data = request.get_json(silent=True) or {}
+        static_only = bool(data.get('static_only'))
 
         path_lower = current_file.lower()
         # Compose files can be validated offline via 'config'
@@ -498,17 +507,17 @@ def test_docker():
         except Exception:
             base_image = None
 
+        inspect = None
         if base_image:
             inspect = subprocess.run(['docker', 'image', 'inspect', base_image], capture_output=True, text=True)
-            if inspect.returncode != 0:
-                msg = (
-                    f"Base image '{base_image}' not found locally. Full build likely requires network access.\n"
-                    "Options while offline:\n"
-                    "- Pre-pull the base image when online: docker pull " + base_image + "\n"
-                    "- Use a locally cached base image\n"
-                    "- Or run the test when you have network access\n"
-                )
-                return jsonify({'success': False, 'error': msg})
+            if static_only:
+                if inspect.returncode != 0:
+                    return jsonify({'success': False, 'error': f"Static check: base image '{base_image}' not present locally."})
+                else:
+                    return jsonify({'success': True, 'output': f"Static check OK. Base image '{base_image}' present locally. No build executed."})
+        else:
+            if static_only:
+                return jsonify({'success': True, 'output': 'Static check OK. No base image detected. No build executed.'})
 
         # Attempt a quiet build without pulling new layers
         cmd = ['docker', 'build', '--pull=false', '-q', '-f', current_file, '.']
