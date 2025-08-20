@@ -96,6 +96,7 @@
     <category name="Webgen">
       <block type="web_set_title"></block>
       <block type="web_add_element"></block>
+      <block type="web_element_with_children"></block>
       <block type="css_add_rule"></block>
       <block type="css_rule_group"></block>
       <block type="css_decl"></block>
@@ -386,6 +387,24 @@
         <value name="TEXT"><block type="text"><field name="TEXT">Witaj</field></block></value>
         <value name="CLASS"><block type="text"><field name="TEXT">title big</field></block></value>
         <value name="STYLE"><block type="text"><field name="TEXT">color:#0a7</field></block></value>
+        <next>
+          <block type="web_element_with_children" id="nc1" x="360" y="220">
+            <field name="TAG">div</field>
+            <field name="ID">container</field>
+            <value name="TEXT"><block type="text"><field name="TEXT"></field></block></value>
+            <value name="CLASS"><block type="text"><field name="TEXT">card</field></block></value>
+            <value name="STYLE"><block type="text"><field name="TEXT">padding:12px</field></block></value>
+            <statement name="CHILDREN">
+              <block type="web_add_element">
+                <field name="TAG">p</field>
+                <field name="ID"></field>
+                <value name="TEXT"><block type="text"><field name="TEXT">Inside nested container</field></block></value>
+                <value name="CLASS"><block type="text"><field name="TEXT">note</field></block></value>
+                <value name="STYLE"><block type="text"><field name="TEXT">color:#555</field></block></value>
+              </block>
+            </statement>
+          </block>
+        </next>
       </block>
     </next>
   </block>
