@@ -9,5 +9,12 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Uruchomienie edytora
-python3 blockly-yaml-editor.py "$@"
+# Sprawdź który plik Python istnieje i użyj go
+if [ -f "blocked.py" ]; then
+    python3 blocked.py "$@"
+elif [ -f "blockly-yaml-editor.py" ]; then
+    python3 blockly-yaml-editor.py "$@"
+else
+    echo "Error: No Python script found (blocked.py or blockly-yaml-editor.py)"
+    exit 1
+fi
