@@ -1,6 +1,0 @@
-version: "3.8"
-services:
-  webapp:
-    image: node:16-alpine
-    ports:
-      - "3000:3000"
