@@ -183,8 +183,8 @@
     // Initialize MQTT with defaults
     connectMqtt();
   </script>
-  <script src="blocks.js?v=5"></script>
-  <script src="generators.js?v=5"></script>
+  <script src="blocks.js?v=6"></script>
+  <script src="generators.js?v=6"></script>
   <script>
     // Blockly init (after custom blocks are loaded)
     const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox') });
@@ -299,10 +299,24 @@
       const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
       return {
         setTitle(t){ state.used = true; state.title = String(t); },
-        addElement(tag, id, text){ state.used = true; state.elements.push({ tag, id: id||'', text: String(text||'') }); },
+        addElement(tag, id, text, cls, sty){
+          state.used = true;
+          state.elements.push({
+            tag,
+            id: id||'',
+            text: String(text||''),
+            className: String(cls||''),
+            style: String(sty||'')
+          });
+        },
         addCssRule(sel, prop, val){ state.used = true; state.rules.push({ sel:String(sel||''), prop:String(prop||''), val:String(val||'') }); },
         build(){
-          const body = state.elements.map(e => `<${e.tag}${e.id?` id="${esc(e.id)}"`:''}>${esc(e.text)}</${e.tag}>`).join('\n');
+          const body = state.elements.map(e => {
+            const idAttr = e.id ? ` id="${esc(e.id)}"` : '';
+            const clsAttr = e.className ? ` class="${esc(e.className)}"` : '';
+            const styAttr = e.style ? ` style="${esc(e.style)}"` : '';
+            return `<${e.tag}${idAttr}${clsAttr}${styAttr}>${esc(e.text)}</${e.tag}>`;
+          }).join('\n');
           const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(state.title)}</title></head><body>\n${body}\n</body></html>`;
           const css = state.rules.map(r => `${r.sel}{ ${r.prop}: ${r.val}; }`).join('\n');
           return { html, css, used: state.used };
@@ -362,6 +376,8 @@
         <field name="TAG">h1</field>
         <field name="ID">title</field>
         <value name="TEXT"><block type="text"><field name="TEXT">Witaj</field></block></value>
+        <value name="CLASS"><block type="text"><field name="TEXT">title big</field></block></value>
+        <value name="STYLE"><block type="text"><field name="TEXT">color:#0a7</field></block></value>
       </block>
     </next>
   </block>
