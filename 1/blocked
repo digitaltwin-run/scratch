@@ -10,11 +10,13 @@ if [ -d "venv" ]; then
 fi
 
 # Sprawdź który plik Python istnieje i użyj go
-if [ -f "blocked.py" ]; then
+if [ -f "simple-yaml-editor.py" ]; then
+    python3 simple-yaml-editor.py "$@"
+elif [ -f "blocked.py" ]; then
     python3 blocked.py "$@"
 elif [ -f "blockly-yaml-editor.py" ]; then
     python3 blockly-yaml-editor.py "$@"
 else
-    echo "Error: No Python script found (blocked.py or blockly-yaml-editor.py)"
+    echo "Error: No Python script found"
     exit 1
 fi

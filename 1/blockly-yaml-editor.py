@@ -31,22 +31,14 @@ auto_save_thread = None
 stop_auto_save = threading.Event()
 backup_dir = Path(".blocked")
 
-# HTML template z Blockly
+# HTML template - Minimal Offline Editor
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Blockly YAML Editor - {{ filename }}</title>
-    <!-- Blockly libraries with fallbacks -->
-    <script src="https://cdn.jsdelivr.net/npm/blockly@9.4.2/blockly.min.js" 
-            onerror="this.onerror=null; this.src='https://unpkg.com/blockly@9.4.2/blockly.min.js'"></script>
-    <script src="https://cdn.jsdelivr.net/npm/blockly@9.4.2/blocks_compressed.js"
-            onerror="this.onerror=null; this.src='https://unpkg.com/blockly@9.4.2/blocks_compressed.js'"></script>
-    <script src="https://cdn.jsdelivr.net/npm/blockly@9.4.2/javascript_compressed.js"
-            onerror="this.onerror=null; this.src='https://unpkg.com/blockly@9.4.2/javascript_compressed.js'"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"
-            onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js'"></script>
+    <title>YAML Editor - {{ filename }}</title>
+    <!-- No external dependencies - fully offline -->
     <style>
         body {
             margin: 0;
@@ -55,6 +47,7 @@ HTML_TEMPLATE = '''
             display: flex;
             flex-direction: column;
             height: 100vh;
+            background: #f5f5f5;
         }
         .header {
             background: #2c3e50;
@@ -63,6 +56,7 @@ HTML_TEMPLATE = '''
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .header h1 {
             margin: 0;
@@ -80,6 +74,7 @@ HTML_TEMPLATE = '''
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            transition: background 0.2s;
         }
         button:hover {
             background: #2980b9;
@@ -94,31 +89,84 @@ HTML_TEMPLATE = '''
             flex: 1;
             overflow: hidden;
         }
-        #blocklyDiv {
+        .editor-panel {
             flex: 1;
-            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .preview {
+        .editor-header {
+            background: #34495e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+        }
+        #textEditor {
+            flex: 1;
+            padding: 0;
+        }
+        #textEditor textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            border-radius: 0 0 8px 8px;
+        }
+        .preview-panel {
             width: 400px;
-            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            margin: 10px 10px 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .preview-header {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+        }
+        .preview-content {
+            flex: 1;
             padding: 20px;
             overflow-y: auto;
-            border-left: 2px solid #ddd;
         }
-        .preview h3 {
-            margin-top: 0;
-            color: #2c3e50;
-        }
-        .preview pre {
-            background: white;
+        .preview-content pre {
+            background: #f8f9fa;
             padding: 15px;
             border-radius: 4px;
             overflow-x: auto;
             font-size: 12px;
             line-height: 1.4;
+            border: 1px solid #e9ecef;
+            margin: 0;
         }
         .error {
             background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .info {
+            background: #3498db;
             color: white;
             padding: 10px;
             border-radius: 4px;
@@ -129,28 +177,38 @@ HTML_TEMPLATE = '''
 <body>
     <div class="header">
         <div style="display: flex; align-items: center;">
-            <h1>Editing: {{ filename }}</h1>
+            <h1>{{ filename }} ({{ file_type }})</h1>
             <span class="save-status" id="saveStatus"></span>
         </div>
         <div class="buttons">
-            <button onclick="generateYAML()">Generate YAML</button>
-            <button onclick="saveFile()">Save File</button>
-            <button onclick="testDocker()" {{ 'style="display:none;"' if not is_docker else '' }}>Test Docker</button>
-            <button onclick="loadBackup()">Load Backup</button>
-            <button onclick="window.close()">Close</button>
+            <button onclick="saveFile()">💾 Save</button>
+            <button onclick="validateContent()">✓ Validate</button>
+            <button onclick="testDocker()" {{ 'style="display:none;"' if not is_docker else '' }}>🐳 Test</button>
+            <button onclick="loadBackup()">📁 Backup</button>
+            <button onclick="formatContent()">🎨 Format</button>
         </div>
     </div>
     
     <div class="container">
-        <div id="blocklyDiv"></div>
-        <div class="preview">
-            <h3>Preview</h3>
-            <div id="errorDiv"></div>
-            <pre id="yamlOutput">{{ initial_content }}</pre>
+        <div class="editor-panel">
+            <div class="editor-header">
+                📝 Editor - {{ file_type|upper }}
+            </div>
+            <div id="textEditor">
+                <textarea id="textContent" placeholder="Edit your {{ file_type }} content here...">{{ initial_content }}</textarea>
+            </div>
+        </div>
+        
+        <div class="preview-panel">
+            <div class="preview-header">
+                👁️ Live Preview
+            </div>
+            <div class="preview-content">
+                <div id="errorDiv"></div>
+                <pre id="yamlOutput">{{ initial_content }}</pre>
+            </div>
         </div>
     </div>
-
-    <xml id="toolbox" style="display: none">
         {% if file_type == 'docker-compose' %}
         <category name="Docker Compose" colour="230">
             <block type="compose_root"></block>
@@ -202,25 +260,81 @@ HTML_TEMPLATE = '''
     </xml>
 
     <script>
-        // Check if Blockly loaded successfully
+        // Offline YAML Editor - No external dependencies
+        var FILE_TYPE = '{{ file_type }}';
+        var services = [];
+        var dockerInstructions = [];
+        var yamlFields = [];
+        var dirty = false;
+        
+        // Initialize editor on page load
         window.addEventListener('load', function() {
-            if (typeof Blockly === 'undefined') {
-                document.getElementById('blocklyDiv').innerHTML = 
-                    '<div style="padding:20px;text-align:center;color:#e74c3c;">' +
-                    '<h2>⚠️ Blockly Libraries Failed to Load</h2>' +
-                    '<p>The visual editor requires internet access to load Blockly libraries.</p>' +
-                    '<p>You can still edit the file manually using the preview panel on the right.</p>' +
-                    '<p>Or try refreshing the page to retry loading the libraries.</p>' +
-                    '</div>';
-                return;
-            }
-            initializeBlockly();
+            initializeEditor();
+            generateYAML();
         });
-
-        function initializeBlockly() {
-            // Używany typ pliku po stronie JS
-            var FILE_TYPE = '{{ file_type }}';
-            // Definicje bloków dla Docker Compose
+        
+        function initializeEditor() {
+            // Parse existing content if available
+            const initialContent = document.getElementById('yamlOutput').textContent;
+            if (initialContent && initialContent.trim() !== '') {
+                parseExistingContent(initialContent);
+            }
+            
+            // Initialize based on file type
+            if (FILE_TYPE === 'docker-compose') {
+                initializeComposeEditor();
+            } else if (FILE_TYPE === 'dockerfile') {
+                initializeDockerfileEditor();
+            } else {
+                initializeYamlEditor();
+            }
+        }
+        
+        function parseExistingContent(content) {
+            if (FILE_TYPE === 'docker-compose') {
+                // Basic parsing for docker-compose
+                const lines = content.split('\n');
+                let currentService = null;
+                
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.includes(':') && !trimmed.startsWith('-')) {
+                        const [key, value] = trimmed.split(':').map(s => s.trim());
+                        if (line.startsWith('  ') && !line.startsWith('    ') && key !== 'version' && key !== 'services') {
+                            // This is a service name
+                            currentService = { name: key, image: '', ports: [], environment: [], volumes: [] };
+                            services.push(currentService);
+                        } else if (currentService && line.startsWith('    ')) {
+                            // This is a service property
+                            if (key === 'image') {
+                                currentService.image = value;
+                            } else if (key === 'ports') {
+                                // Will be handled by array parsing
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'visual') {
+                document.querySelector('.tab').classList.add('active');
+                document.getElementById('visualEditor').style.display = 'block';
+                document.getElementById('textEditor').style.display = 'none';
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('visualEditor').style.display = 'none';
+                document.getElementById('textEditor').style.display = 'block';
+                // Sync text editor with current content
+                document.getElementById('textContent').value = document.getElementById('yamlOutput').textContent;
+            }
+        }
+        
+        // Docker Compose functions
         Blockly.Blocks['compose_root'] = {
             init: function() {
                 this.appendDummyInput()

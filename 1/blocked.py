@@ -7,7 +7,6 @@ Edytor plików YAML (docker-compose, etc.) oraz Dockerfile z interfejsem Blockly
 import os
 import sys
 import json
-import yaml
 import webbrowser
 import threading
 import time
@@ -30,6 +29,81 @@ last_saved_content = None
 auto_save_thread = None
 stop_auto_save = threading.Event()
 backup_dir = Path(".blocked")
+
+# Offline deprecation template (no external scripts)
+DEPRECATED_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Deprecated Blockly Editor - {{ filename }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; color: #2c3e50; }
+        .header { background: #c0392b; color: #fff; padding: 16px 24px; }
+        .container { max-width: 900px; margin: 24px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+        .content { padding: 24px; }
+        h1 { margin: 0; font-size: 20px; }
+        h2 { margin-top: 0; }
+        .notice { background: #fceae9; border: 1px solid #e74c3c; color: #c0392b; padding: 12px 16px; border-radius: 6px; }
+        .card { background: #f8f9fb; border: 1px solid #e1e6ef; border-radius: 6px; padding: 16px; margin-top: 16px; }
+        code, pre { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+        pre { padding: 12px; overflow-x: auto; }
+        ul { margin: 8px 0 0 20px; }
+        .footer { padding: 16px 24px; background: #fafbfc; border-top: 1px solid #eef2f7; font-size: 12px; color: #6b7c93; }
+    </style>
+    <meta name="robots" content="noindex,nofollow" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <script>
+      window.addEventListener('load', function(){
+        console.log('This Blockly-based editor is deprecated and intentionally offline-only.');
+      });
+    </script>
+    
+    </head>
+<body>
+    <div class="header">
+        <h1>Deprecated Blockly Editor — {{ filename }} ({{ file_type }})</h1>
+    </div>
+    <div class="container">
+        <div class="content">
+            <div class="notice">
+                This Blockly-based editor is deprecated and no longer loads external CDN scripts. To edit files offline reliably, use the new minimal editor.
+            </div>
+
+            <div class="card">
+                <h2>Recommended: Minimal Offline Editor</h2>
+                <p>Run one of the following commands from directory <code>1/</code>:</p>
+<pre>
+./blocked "{{ filename }}"
+# or
+python3 simple-yaml-editor.py "{{ filename }}"
+</pre>
+                <p>Features:</p>
+                <ul>
+                    <li>Offline-only, no CDN dependencies</li>
+                    <li>Save, auto-save, backups, restore</li>
+                    <li>Basic validation and formatting</li>
+                    <li>Docker config test for Dockerfile/docker-compose</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>Why the change?</h2>
+                <ul>
+                    <li>CDN loading failures broke the Blockly UI in restricted networks.</li>
+                    <li>The new editor ensures reliable editing completely offline.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer">
+            If you reached this page by running <code>blocked.py</code>, please switch to the minimal editor via <code>./blocked</code> or <code>simple-yaml-editor.py</code>.
+        </div>
+    </div>
+</body>
+</html>
+'''
 
 # HTML template z Blockly
 HTML_TEMPLATE = '''
@@ -849,7 +923,7 @@ def index():
     is_docker = file_type in ['docker-compose', 'dockerfile']
     
     return render_template_string(
-        HTML_TEMPLATE, 
+        DEPRECATED_TEMPLATE, 
         filename=os.path.basename(current_file),
         initial_content=initial_content,
         file_type=file_type,
